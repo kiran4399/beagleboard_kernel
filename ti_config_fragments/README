@@ -1,8 +1,4 @@
 ##################################
-THIS SCRIPT IS EXPERIMENTAL AND MAY NOT PRODUCE A BOOTABLE KERNEL IMAGE
-##################################
-
-##################################
 # Introduction
 ##################################
 
@@ -49,12 +45,26 @@ assembly instructions for the defconfig to be created.
 
 The file contains keywords and all are *required* to be filled out.
 
-processor: - Defines the processor type if the defconfig is to be processor specific
+classification: - Defines the class of the defconfig which can be Release, Debug, System Test.
 type: - Defines the type of build.  Like debug build, LSK build or RT build
 defconfig: - Defines the base defconfig config to append the config fragments to
 config_file: - Defines a file that contains a list of config fragments.  If there is not a list then declare "None" for this field.
 extra_configs: - These are individual config fragments that can be appended to the defconfig by themselves or in addition to
         the config_file.
+
+A Note on ordering of "extra_configs":
+
+In general, config fragments should be listed such that the fragment
+with more restrictive options goes towards the end of the list. This
+makes sure that those options are not inadvertently overridden by more
+generically applicable options. More concretely, the following ordering
+is recommended:
+
+1) Pruning of non-TI features
+2) Introduce domain specific features
+3) Optimize for an SoC family
+4) Optimize for a particular SoC
+5) Introduce distribution specific features. (example: Android)
 
 Example:
 
@@ -63,7 +73,7 @@ processors, based on the omap2plus_defconfig.  The defconfig_fragment file adds 
 that have been enabled in the TI integrated kernel.  The extra_configs will add in the
 debug options as well as undefine all processors that are not AM335x.
 
-processor: AM33xx type: am335x_debug_only defconfig: omap2plus_defconfig config_file: defconfig_fragment extra_configs: debug_options.cfg am33xx_only.cfg
+classification: SDK_release type: ti_sdk_am3x_release defconfig: multi_v7_defconfig config_file: None extra_configs: multi_v7_prune.cfg baseport.cfg ipc.cfg connectivity.cfg audio_display.cfg omap_soc.cfg am33xx_only.cfg systemd.cfg
 
 ##################################
 # Defconfig Mapping

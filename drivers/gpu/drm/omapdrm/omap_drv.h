@@ -24,7 +24,6 @@
 #include <linux/platform_data/omap_drm.h>
 #include <linux/types.h>
 #include <linux/wait.h>
-#include <video/omapdss.h>
 
 #include <drm/drmP.h>
 #include <drm/drm_crtc_helper.h>
@@ -285,15 +284,15 @@ fail:
 	return -ENOENT;
 }
 
-#if IS_ENABLED(CONFIG_DRM_OMAP_WB_M2M)
+#if IS_ENABLED(CONFIG_DRM_OMAP_WB)
 
-int wbm2m_init(struct drm_device *drmdev);
-void wbm2m_cleanup(struct drm_device *drmdev);
+int wb_init(struct drm_device *drmdev);
+void wb_cleanup(struct drm_device *drmdev);
 
 #else
 
-static inline int wbm2m_init(struct drm_device *drmdev) { return 0; }
-static inline void wbm2m_cleanup(struct drm_device *drmdev) { }
+static inline int wb_init(struct drm_device *drmdev) { return 0; }
+static inline void wb_cleanup(struct drm_device *drmdev) { }
 
 #endif
 

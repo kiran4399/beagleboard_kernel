@@ -145,6 +145,9 @@ static struct rproc *__pruss_rproc_get(struct pruss *pruss,
 		return ERR_PTR(-EPROBE_DEFER);
 
 	rproc = platform_get_drvdata(pdev);
+	if (!rproc)
+		return ERR_PTR(-EPROBE_DEFER);
+
 	get_device(&rproc->dev);
 
 	return rproc;
@@ -324,227 +327,6 @@ int pruss_release_mem_region(struct pruss *pruss,
 }
 EXPORT_SYMBOL_GPL(pruss_release_mem_region);
 
-static inline u32 pruss_intc_read_reg(struct pruss *pruss, unsigned int reg)
-{
-	return readl_relaxed(pruss->mem_regions[PRUSS_MEM_INTC].va + reg);
-}
-
-static inline void pruss_intc_write_reg(struct pruss *pruss, unsigned int reg,
-					u32 val)
-{
-	writel_relaxed(val, pruss->mem_regions[PRUSS_MEM_INTC].va + reg);
-}
-
-/**
- * pruss_intc_configure() - configure the PRUSS INTC
- * @pruss: the pruss instance
- * @intc_config: PRU core-specific INTC configuration
- *
- * Configures the PRUSS INTC with the provided configuration from
- * a PRU core. Any existing event to channel mappings or channel to
- * host interrupt mappings are checked to make sure there are no
- * conflicting configuration between both the PRU cores. The function
- * is intended to be only used by the PRU remoteproc driver.
- *
- * Returns 0 on success, or a suitable error code otherwise
- */
-int pruss_intc_configure(struct pruss *pruss,
-			 struct pruss_intc_config *intc_config)
-{
-	struct device *dev = pruss->dev;
-	int i, idx, ch, host, ret;
-	u64 sysevt_mask = 0;
-	u32 ch_mask = 0;
-	u32 host_mask = 0;
-	u32 val;
-
-	mutex_lock(&pruss->intc_lock);
-
-	/*
-	 * configure channel map registers - each register holds map info
-	 * for 4 events, with each event occupying the lower nibble in
-	 * a register byte address in little-endian fashion
-	 */
-	for (i = 0; i < ARRAY_SIZE(intc_config->sysev_to_ch); i++) {
-		ch = intc_config->sysev_to_ch[i];
-		if (ch < 0)
-			continue;
-
-		/* check if sysevent already assigned */
-		if (pruss->intc_config.sysev_to_ch[i] != -1) {
-			dev_err(dev, "event %d (req. channel %d) already assigned to channel %d\n",
-				i, ch, pruss->intc_config.sysev_to_ch[i]);
-			ret = -EEXIST;
-			goto unlock;
-		}
-
-		pruss->intc_config.sysev_to_ch[i] = ch;
-
-		idx = i / 4;
-		val = pruss_intc_read_reg(pruss, PRU_INTC_CMR(idx));
-		val |= ch << ((i & 3) * 8);
-		pruss_intc_write_reg(pruss, PRU_INTC_CMR(idx), val);
-
-		sysevt_mask |= BIT_ULL(i);
-		ch_mask |= BIT(ch);
-
-		dev_dbg(dev, "SYSEV%d -> CH%d (CMR%d 0x%08x)\n", i, ch, idx,
-			pruss_intc_read_reg(pruss, PRU_INTC_CMR(idx)));
-	}
-
-	/*
-	 * set host map registers - each register holds map info for
-	 * 4 channels, with each channel occupying the lower nibble in
-	 * a register byte address in little-endian fashion
-	 */
-	for (i = 0; i < ARRAY_SIZE(intc_config->ch_to_host); i++) {
-		host = intc_config->ch_to_host[i];
-		if (host < 0)
-			continue;
-
-		/* check if channel already assigned */
-		if (pruss->intc_config.ch_to_host[i] != -1) {
-			dev_err(dev, "channel %d (req. intr_no %d) already assigned to intr_no %d\n",
-				i, host, pruss->intc_config.ch_to_host[i]);
-			ret = -EEXIST;
-			goto unlock;
-		}
-
-		/* check if host intr is already in use by other PRU */
-		if (pruss->host_mask & (1U << host)) {
-			dev_err(dev, "%s: host intr %d already in use\n",
-				__func__, host);
-			ret = -EEXIST;
-			goto unlock;
-		}
-
-		pruss->intc_config.ch_to_host[i] = host;
-
-		idx = i / 4;
-
-		val = pruss_intc_read_reg(pruss, PRU_INTC_HMR(idx));
-		val |= host << ((i & 3) * 8);
-		pruss_intc_write_reg(pruss, PRU_INTC_HMR(idx), val);
-
-		ch_mask |= BIT(i);
-		host_mask |= BIT(host);
-
-		dev_dbg(dev, "CH%d -> HOST%d (HMR%d 0x%08x)\n", i, host, idx,
-			pruss_intc_read_reg(pruss, PRU_INTC_HMR(idx)));
-	}
-
-	dev_info(dev, "configured system_events = 0x%016llx intr_channels = 0x%08x host_intr = 0x%08x\n",
-		 sysevt_mask, ch_mask, host_mask);
-
-	/* enable system events, writing 0 has no-effect */
-	pruss_intc_write_reg(pruss, PRU_INTC_ESR0, lower_32_bits(sysevt_mask));
-	pruss_intc_write_reg(pruss, PRU_INTC_SECR0, lower_32_bits(sysevt_mask));
-	pruss_intc_write_reg(pruss, PRU_INTC_ESR1, upper_32_bits(sysevt_mask));
-	pruss_intc_write_reg(pruss, PRU_INTC_SECR1, upper_32_bits(sysevt_mask));
-
-	/* enable host interrupts */
-	for (i = 0; i < MAX_PRU_HOST_INT; i++) {
-		if (host_mask & BIT(i))
-			pruss_intc_write_reg(pruss, PRU_INTC_HIEISR, i);
-	}
-
-	/* global interrupt enable */
-	pruss_intc_write_reg(pruss, PRU_INTC_GER, 1);
-
-	pruss->host_mask |= host_mask;
-
-	mutex_unlock(&pruss->intc_lock);
-	return 0;
-
-unlock:
-	mutex_unlock(&pruss->intc_lock);
-	return ret;
-}
-EXPORT_SYMBOL_GPL(pruss_intc_configure);
-
-/**
- * pruss_intc_unconfigure() - unconfigure the PRUSS INTC
- * @pruss: the pruss instance
- * @intc_config: PRU core specific INTC configuration
- *
- * Undo whatever was done in pruss_intc_configure() for a PRU core.
- * It should be sufficient to just mark the resources free in the
- * global map and disable the host interrupts and sysevents.
- */
-int pruss_intc_unconfigure(struct pruss *pruss,
-			   struct pruss_intc_config *intc_config)
-{
-	struct device *dev = pruss->dev;
-	int i, ch, host;
-	u64 sysevt_mask = 0;
-	u32 host_mask = 0;
-
-	mutex_lock(&pruss->intc_lock);
-
-	for (i = 0; i < ARRAY_SIZE(intc_config->sysev_to_ch); i++) {
-		ch = intc_config->sysev_to_ch[i];
-		if (ch < 0)
-			continue;
-
-		/* mark sysevent free in global map */
-		pruss->intc_config.sysev_to_ch[i] = -1;
-		sysevt_mask |= BIT_ULL(i);
-	}
-
-	for (i = 0; i < ARRAY_SIZE(intc_config->ch_to_host); i++) {
-		host = intc_config->ch_to_host[i];
-		if (host < 0)
-			continue;
-
-		/* mark channel free in global map */
-		pruss->intc_config.ch_to_host[i] = -1;
-		host_mask |= BIT(host);
-	}
-
-	dev_info(dev, "unconfigured system_events = 0x%016llx host_intr = 0x%08x\n",
-		 sysevt_mask, host_mask);
-
-	/* disable system events, writing 0 has no-effect */
-	pruss_intc_write_reg(pruss, PRU_INTC_ECR0, lower_32_bits(sysevt_mask));
-	pruss_intc_write_reg(pruss, PRU_INTC_ECR1, upper_32_bits(sysevt_mask));
-	/* clear any pending status */
-	pruss_intc_write_reg(pruss, PRU_INTC_SECR0, lower_32_bits(sysevt_mask));
-	pruss_intc_write_reg(pruss, PRU_INTC_SECR1, upper_32_bits(sysevt_mask));
-
-	/* disable host interrupts */
-	for (i = 0; i < MAX_PRU_HOST_INT; i++) {
-		if (host_mask & BIT(i))
-			pruss_intc_write_reg(pruss, PRU_INTC_HIDISR, i);
-	}
-
-	pruss->host_mask &= ~host_mask;
-	mutex_unlock(&pruss->intc_lock);
-
-	return 0;
-}
-EXPORT_SYMBOL_GPL(pruss_intc_unconfigure);
-
-static void pruss_intc_init(struct pruss *pruss)
-{
-	int i;
-
-	/* configure polarity to active high for all system interrupts */
-	pruss_intc_write_reg(pruss, PRU_INTC_SIPR0, 0xffffffff);
-	pruss_intc_write_reg(pruss, PRU_INTC_SIPR1, 0xffffffff);
-
-	/* configure type to pulse interrupt for all system interrupts */
-	pruss_intc_write_reg(pruss, PRU_INTC_SITR0, 0);
-	pruss_intc_write_reg(pruss, PRU_INTC_SITR1, 0);
-
-	/* clear all 16 interrupt channel map registers */
-	for (i = 0; i < 16; i++)
-		pruss_intc_write_reg(pruss, PRU_INTC_CMR(i), 0);
-
-	/* clear all 3 host interrupt map registers */
-	for (i = 0; i < 3; i++)
-		pruss_intc_write_reg(pruss, PRU_INTC_HMR(i), 0);
-}
-
 static inline u32 pruss_read_reg(struct pruss *pruss, enum pruss_mem region,
 				 unsigned int reg)
 {
@@ -571,6 +353,9 @@ static inline void pruss_set_reg(struct pruss *pruss, enum pruss_mem region,
 /* firmware must be idle when calling this function */
 static void pruss_disable_module(struct pruss *pruss)
 {
+	if (pruss->skip_syscfg)
+		goto put_sync;
+
 	/* configure Smart Standby */
 	pruss_set_reg(pruss, PRUSS_MEM_CFG, PRUSS_CFG_SYSCFG,
 		      PRUSS_SYSCFG_STANDBY_MODE_MASK,
@@ -581,6 +366,7 @@ static void pruss_disable_module(struct pruss *pruss)
 		      PRUSS_SYSCFG_STANDBY_INIT,
 		      PRUSS_SYSCFG_STANDBY_INIT);
 
+put_sync:
 	/* tell PRCM to initiate IDLE request */
 	pm_runtime_put_sync(pruss->dev);
 }
@@ -627,6 +413,9 @@ static int pruss_enable_module(struct pruss *pruss)
 		pm_runtime_put_noidle(pruss->dev);
 		return ret;
 	}
+
+	if (pruss->skip_syscfg)
+		return ret;
 
 	/* configure for smart idle & smart standby */
 	pruss_set_reg(pruss, PRUSS_MEM_CFG, PRUSS_CFG_SYSCFG,
@@ -681,6 +470,39 @@ int pruss_cfg_gpimode(struct pruss *pruss, struct rproc *rproc,
 EXPORT_SYMBOL_GPL(pruss_cfg_gpimode);
 
 /**
+ * pruss_cfg_set_gpmux() - set the GP_MUX mode of the PRU
+ * @pruss: the pruss instance handle
+ * @pru_id: the PRU id for which the GP_MUX mode is to be set
+ * @mux_sel: GP mux sel value to set
+ *
+ * Sets the GP MUX mode for a given PRU by programming the
+ * corresponding PRUSS_CFG_GPCFGx register. This API is currently
+ * limited to be invoked only by the pru_rproc driver
+ *
+ * Returns 0 on success, or an error code otherwise
+ */
+int pruss_cfg_set_gpmux(struct pruss *pruss, enum pruss_pru_id pru_id,
+			enum pruss_gp_mux_sel mux_sel)
+{
+	u32 reg, val, mask;
+
+	if (pru_id < 0 || pru_id >= PRUSS_NUM_PRUS) {
+		dev_err(pruss->dev, "%s: invalid PRU id, %d\n",
+			__func__, pru_id);
+		return -EINVAL;
+	}
+
+	reg = PRUSS_CFG_GPCFG0 + (0x4 * pru_id);
+	val = mux_sel << PRUSS_GPCFG_PRU_MUX_SEL_SHIFT;
+	mask = PRUSS_GPCFG_PRU_MUX_SEL_MASK;
+
+	pruss_set_reg(pruss, PRUSS_MEM_CFG, reg, mask, val);
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(pruss_cfg_set_gpmux);
+
+/**
  * pruss_cfg_miirt_enable() - Enable/disable MII RT Events
  * @pruss: the pruss instance
  * @enable: enable/disable
@@ -718,8 +540,12 @@ EXPORT_SYMBOL_GPL(pruss_cfg_xfr_enable);
 static int pruss_suspend(struct device *dev)
 {
 	struct pruss *pruss = dev_get_drvdata(dev);
-	u32 syscfg_val = pruss_read_reg(pruss, PRUSS_MEM_CFG, PRUSS_CFG_SYSCFG);
+	u32 syscfg_val;
 
+	if (pruss->skip_syscfg)
+		return 0;
+
+	syscfg_val = pruss_read_reg(pruss, PRUSS_MEM_CFG, PRUSS_CFG_SYSCFG);
 	pruss->in_standby = syscfg_val & PRUSS_SYSCFG_STANDBY_INIT;
 
 	/* initiate MStandby, undo the MStandby config in probe */
@@ -738,7 +564,7 @@ static int pruss_resume(struct device *dev)
 	int ret = 0;
 
 	/* re-enable OCP master ports/disable MStandby */
-	if (!pruss->in_standby) {
+	if (!pruss->skip_syscfg && !pruss->in_standby) {
 		ret = pruss_enable_ocp_master_ports(pruss);
 		if (ret)
 			dev_err(dev, "%s failed\n", __func__);
@@ -753,17 +579,12 @@ static const struct of_device_id pruss_of_match[];
 static const
 struct pruss_private_data *pruss_get_private_data(struct platform_device *pdev)
 {
-	struct device_node *np = pdev->dev.of_node;
 	const struct pruss_match_private_data *data;
 	const struct of_device_id *match;
 
 	match = of_match_device(pruss_of_match, &pdev->dev);
 	if (!match)
 		return ERR_PTR(-ENODEV);
-
-	if (of_device_is_compatible(np, "ti,am3352-pruss") ||
-	    of_device_is_compatible(np, "ti,am4372-pruss"))
-		return match->data;
 
 	data = match->data;
 	for (; data && data->device_name; data++) {
@@ -784,8 +605,7 @@ static int pruss_probe(struct platform_device *pdev)
 	struct pruss_platform_data *pdata = dev_get_platdata(dev);
 	const struct pruss_private_data *data;
 	const char *mem_names[PRUSS_MEM_MAX] = { "dram0", "dram1", "shrdram2",
-						 "intc", "cfg", "iep",
-						 "mii_rt" };
+						 "cfg", "iep", "mii_rt" };
 
 	if (!node) {
 		dev_err(dev, "Non-DT platform device not supported\n");
@@ -816,15 +636,9 @@ static int pruss_probe(struct platform_device *pdev)
 
 	pruss->dev = dev;
 	pruss->data = data;
+	pruss->skip_syscfg = !!of_device_is_compatible(node, "ti,k2g-pruss");
 	mutex_init(&pruss->lock);
-	mutex_init(&pruss->intc_lock);
 	mutex_init(&pruss->cfg_lock);
-
-	for (i = 0; i < ARRAY_SIZE(pruss->intc_config.sysev_to_ch); i++)
-		pruss->intc_config.sysev_to_ch[i] = -1;
-
-	for (i = 0; i < ARRAY_SIZE(pruss->intc_config.ch_to_host); i++)
-		pruss->intc_config.ch_to_host[i] = -1;
 
 	for (i = 0; i < ARRAY_SIZE(mem_names); i++) {
 		res = platform_get_resource_byname(pdev, IORESOURCE_MEM,
@@ -857,8 +671,6 @@ static int pruss_probe(struct platform_device *pdev)
 		dev_err(dev, "couldn't enable pruss\n");
 		goto err_rpm_fail;
 	}
-
-	pruss_intc_init(pruss);
 
 	platform_set_drvdata(pdev, pruss);
 
@@ -944,13 +756,25 @@ static struct of_dev_auxdata am57xx_pruss2_rproc_auxdata_lookup[] = {
 	{ /* sentinel */ },
 };
 
+static struct of_dev_auxdata k2g_pruss0_rproc_auxdata_lookup[] = {
+	OF_DEV_AUXDATA("ti,k2g-pru", 0x20ab4000, "20ab4000.pru0", NULL),
+	OF_DEV_AUXDATA("ti,k2g-pru", 0x20ab8000, "20ab8000.pru1", NULL),
+	{ /* sentinel */ },
+};
+
+static struct of_dev_auxdata k2g_pruss1_rproc_auxdata_lookup[] = {
+	OF_DEV_AUXDATA("ti,k2g-pru", 0x20af4000, "20af4000.pru0", NULL),
+	OF_DEV_AUXDATA("ti,k2g-pru", 0x20af8000, "20af8000.pru1", NULL),
+	{ /* sentinel */ },
+};
+
 /* instance-specific driver private data */
-static struct pruss_private_data am335x_priv_data = {
+static struct pruss_private_data am335x_pruss_priv_data = {
 	.aux_data = am335x_pruss_rproc_auxdata_lookup,
 	.has_reset = true,
 };
 
-static struct pruss_private_data am437x_priv_data = {
+static struct pruss_private_data am437x_pruss1_priv_data = {
 	.aux_data = am437x_pruss1_rproc_auxdata_lookup,
 	.has_reset = true,
 };
@@ -961,6 +785,34 @@ static struct pruss_private_data am57xx_pruss1_priv_data = {
 
 static struct pruss_private_data am57xx_pruss2_priv_data = {
 	.aux_data = am57xx_pruss2_rproc_auxdata_lookup,
+};
+
+static struct pruss_private_data k2g_pruss0_priv_data = {
+	.aux_data = k2g_pruss0_rproc_auxdata_lookup,
+};
+
+static struct pruss_private_data k2g_pruss1_priv_data = {
+	.aux_data = k2g_pruss1_rproc_auxdata_lookup,
+};
+
+static struct pruss_match_private_data am335x_match_data[] = {
+	{
+		.device_name	= "4a300000.pruss",
+		.priv_data	= &am335x_pruss_priv_data,
+	},
+	{
+		/* sentinel */
+	},
+};
+
+static struct pruss_match_private_data am437x_match_data[] = {
+	{
+		.device_name	= "54400000.pruss",
+		.priv_data	= &am437x_pruss1_priv_data,
+	},
+	{
+		/* sentinel */
+	},
 };
 
 static struct pruss_match_private_data am57xx_match_data[] = {
@@ -977,10 +829,25 @@ static struct pruss_match_private_data am57xx_match_data[] = {
 	},
 };
 
+static struct pruss_match_private_data k2g_match_data[] = {
+	{
+		.device_name	= "20a80000.pruss",
+		.priv_data	= &k2g_pruss0_priv_data,
+	},
+	{
+		.device_name	= "20ac0000.pruss",
+		.priv_data	= &k2g_pruss1_priv_data,
+	},
+	{
+		/* sentinel */
+	},
+};
+
 static const struct of_device_id pruss_of_match[] = {
-	{ .compatible = "ti,am3352-pruss", .data = &am335x_priv_data, },
-	{ .compatible = "ti,am4372-pruss", .data = &am437x_priv_data, },
+	{ .compatible = "ti,am3352-pruss", .data = &am335x_match_data, },
+	{ .compatible = "ti,am4372-pruss", .data = &am437x_match_data, },
 	{ .compatible = "ti,am5728-pruss", .data = &am57xx_match_data, },
+	{ .compatible = "ti,k2g-pruss", .data = &k2g_match_data, },
 	{ /* sentinel */ },
 };
 MODULE_DEVICE_TABLE(of, pruss_of_match);

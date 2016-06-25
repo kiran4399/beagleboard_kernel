@@ -307,8 +307,13 @@ static int aufs_atomic_open(struct inode *dir, struct dentry *dentry,
 			 * another error will be returned later.
 			 */
 			d_drop(d);
+<<<<<<< HEAD
 			dput(d);
 			AuDbgDentry(d);
+=======
+			AuDbgDentry(d);
+			dput(d);
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 		}
 		AuDbgDentry(dentry);
 	}

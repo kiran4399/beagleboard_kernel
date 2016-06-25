@@ -158,6 +158,15 @@ static inline void au_h_dentry_init(struct au_hdentry *hdentry)
 	hdentry->hd_dentry = NULL;
 }
 
+<<<<<<< HEAD
+=======
+static inline struct au_hdentry *au_hdentry(struct au_dinfo *di,
+					    aufs_bindex_t bindex)
+{
+	return di->di_hdentry + bindex;
+}
+
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 static inline void au_hdput(struct au_hdentry *hd)
 {
 	if (hd)

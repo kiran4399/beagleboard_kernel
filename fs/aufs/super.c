@@ -36,6 +36,10 @@ static struct inode *aufs_alloc_inode(struct super_block *sb __maybe_unused)
 	if (c) {
 		au_icntnr_init(c);
 		c->vfs_inode.i_version = 1; /* sigen(sb); */
+<<<<<<< HEAD
+=======
+		c->iinfo.ii_hinode = NULL;
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 		return &c->vfs_inode;
 	}
 	return NULL;
@@ -51,7 +55,11 @@ static void aufs_destroy_inode_cb(struct rcu_head *head)
 
 static void aufs_destroy_inode(struct inode *inode)
 {
+<<<<<<< HEAD
 	if (!is_bad_inode(inode))
+=======
+	if (!au_is_bad_inode(inode))
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 		au_iinfo_fin(inode);
 	call_rcu(&inode->i_rcu, aufs_destroy_inode_cb);
 }
@@ -98,11 +106,20 @@ static int au_show_brs(struct seq_file *seq, struct super_block *sb)
 
 	err = 0;
 	bbot = au_sbbot(sb);
+<<<<<<< HEAD
 	hdp = au_di(sb->s_root)->di_hdentry;
 	for (bindex = 0; !err && bindex <= bbot; bindex++) {
 		br = au_sbr(sb, bindex);
 		path.mnt = au_br_mnt(br);
 		path.dentry = hdp[bindex].hd_dentry;
+=======
+	bindex = 0;
+	hdp = au_hdentry(au_di(sb->s_root), bindex);
+	for (; !err && bindex <= bbot; bindex++, hdp++) {
+		br = au_sbr(sb, bindex);
+		path.mnt = au_br_mnt(br);
+		path.dentry = hdp->hd_dentry;
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 		err = au_seq_path(seq, &path);
 		if (!err) {
 			au_optstr_br_perm(&perm, br->br_perm);
@@ -177,7 +194,10 @@ static int au_show_xino(struct seq_file *seq, struct super_block *sb)
 	struct qstr *name;
 	struct file *f;
 	struct dentry *d, *h_root;
+<<<<<<< HEAD
 	struct au_hdentry *hdp;
+=======
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 
 	AuRwMustAnyLock(&sbinfo->si_rwsem);
 
@@ -191,8 +211,12 @@ static int au_show_xino(struct seq_file *seq, struct super_block *sb)
 	brid = au_xino_brid(sb);
 	if (brid >= 0) {
 		bindex = au_br_index(sb, brid);
+<<<<<<< HEAD
 		hdp = au_di(sb->s_root)->di_hdentry;
 		h_root = hdp[0 + bindex].hd_dentry;
+=======
+		h_root = au_hdentry(au_di(sb->s_root), bindex)->hd_dentry;
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 	}
 	d = f->f_path.dentry;
 	name = &d->d_name;
@@ -516,7 +540,11 @@ static unsigned long long au_iarray_cb(struct super_block *sb, void *a,
 	head = arg;
 	spin_lock(&sb->s_inode_list_lock);
 	list_for_each_entry(inode, head, i_sb_list) {
+<<<<<<< HEAD
 		if (!is_bad_inode(inode)
+=======
+		if (!au_is_bad_inode(inode)
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 		    && au_ii(inode)->ii_btop >= 0) {
 			spin_lock(&inode->i_lock);
 			if (atomic_read(&inode->i_count)) {

@@ -165,10 +165,15 @@ static irqreturn_t am2315_trigger_handler(int irq, void *p)
 	struct am2315_sensor_data sensor_data;
 
 	ret = am2315_read_data(data, &sensor_data);
+<<<<<<< HEAD
 	if (ret < 0) {
 		mutex_unlock(&data->lock);
 		goto err;
 	}
+=======
+	if (ret < 0)
+		goto err;
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 
 	mutex_lock(&data->lock);
 	if (*(indio_dev->active_scan_mask) == AM2315_ALL_CHANNEL_MASK) {
