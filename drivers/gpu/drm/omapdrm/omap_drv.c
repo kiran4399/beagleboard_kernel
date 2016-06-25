@@ -671,12 +671,18 @@ static int ioctl_gem_info(struct drm_device *dev, void *data,
 }
 
 static const struct drm_ioctl_desc ioctls[DRM_COMMAND_END - DRM_COMMAND_BASE] = {
-	DRM_IOCTL_DEF_DRV(OMAP_GET_PARAM, ioctl_get_param, DRM_AUTH),
-	DRM_IOCTL_DEF_DRV(OMAP_SET_PARAM, ioctl_set_param, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY),
-	DRM_IOCTL_DEF_DRV(OMAP_GEM_NEW, ioctl_gem_new, DRM_AUTH),
-	DRM_IOCTL_DEF_DRV(OMAP_GEM_CPU_PREP, ioctl_gem_cpu_prep, DRM_AUTH),
-	DRM_IOCTL_DEF_DRV(OMAP_GEM_CPU_FINI, ioctl_gem_cpu_fini, DRM_AUTH),
-	DRM_IOCTL_DEF_DRV(OMAP_GEM_INFO, ioctl_gem_info, DRM_AUTH),
+	DRM_IOCTL_DEF_DRV(OMAP_GET_PARAM, ioctl_get_param,
+			  DRM_AUTH | DRM_RENDER_ALLOW),
+	DRM_IOCTL_DEF_DRV(OMAP_SET_PARAM, ioctl_set_param,
+			  DRM_AUTH | DRM_MASTER | DRM_ROOT_ONLY),
+	DRM_IOCTL_DEF_DRV(OMAP_GEM_NEW, ioctl_gem_new,
+			  DRM_AUTH | DRM_RENDER_ALLOW),
+	DRM_IOCTL_DEF_DRV(OMAP_GEM_CPU_PREP, ioctl_gem_cpu_prep,
+			  DRM_AUTH | DRM_RENDER_ALLOW),
+	DRM_IOCTL_DEF_DRV(OMAP_GEM_CPU_FINI, ioctl_gem_cpu_fini,
+			  DRM_AUTH | DRM_RENDER_ALLOW),
+	DRM_IOCTL_DEF_DRV(OMAP_GEM_INFO, ioctl_gem_info,
+			  DRM_AUTH | DRM_RENDER_ALLOW),
 };
 
 /*
@@ -746,7 +752,7 @@ static int dev_load(struct drm_device *dev, unsigned long flags)
 	drm_kms_helper_poll_init(dev);
 
 	if (priv->dispc_ops->has_writeback()) {
-		ret = wbm2m_init(dev);
+		ret = wb_init(dev);
 		if (ret)
 			dev_warn(dev->dev, "failed to initialize writeback\n");
 		else
@@ -763,7 +769,7 @@ static int dev_unload(struct drm_device *dev)
 	DBG("unload: dev=%p", dev);
 
 	if (priv->wb_initialized)
-		wbm2m_cleanup(dev);
+		wb_cleanup(dev);
 
 	drm_kms_helper_poll_fini(dev);
 
@@ -886,7 +892,7 @@ static const struct file_operations omapdriver_fops = {
 
 static struct drm_driver omap_drm_driver = {
 	.driver_features = DRIVER_MODESET | DRIVER_GEM  | DRIVER_PRIME |
-		DRIVER_ATOMIC,
+		DRIVER_ATOMIC | DRIVER_RENDER,
 	.load = dev_load,
 	.unload = dev_unload,
 	.open = dev_open,

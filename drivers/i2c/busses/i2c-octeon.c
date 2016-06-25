@@ -786,6 +786,7 @@ static void octeon_i2c_set_clock(struct octeon_i2c *i2c)
 				}
 			}
 		}
+<<<<<<< HEAD
 	}
 	octeon_i2c_reg_write(i2c, SW_TWSI_OP_TWSI_CLK, thp);
 	octeon_i2c_reg_write(i2c, SW_TWSI_EOP_TWSI_CLKCTL, (mdiv << 3) | ndiv);
@@ -804,8 +805,31 @@ static int octeon_i2c_init_lowlevel(struct octeon_i2c *i2c)
 		status = octeon_i2c_stat_read(i2c);
 		if (status == STAT_IDLE)
 			break;
+=======
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+	}
+	octeon_i2c_reg_write(i2c, SW_TWSI_OP_TWSI_CLK, thp);
+	octeon_i2c_reg_write(i2c, SW_TWSI_EOP_TWSI_CLKCTL, (mdiv << 3) | ndiv);
+}
+
+<<<<<<< HEAD
+=======
+static int octeon_i2c_init_lowlevel(struct octeon_i2c *i2c)
+{
+	u8 status = 0;
+	int tries;
+
+	/* reset controller */
+	octeon_i2c_reg_write(i2c, SW_TWSI_EOP_TWSI_RST, 0);
+
+	for (tries = 10; tries && status != STAT_IDLE; tries--) {
+		udelay(1);
+		status = octeon_i2c_stat_read(i2c);
+		if (status == STAT_IDLE)
+			break;
 	}
 
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 	if (status != STAT_IDLE) {
 		dev_err(i2c->dev, "%s: TWSI_RST failed! (0x%x)\n",
 			__func__, status);
@@ -934,8 +958,20 @@ static int octeon_i2c_read(struct octeon_i2c *i2c, int target,
 		return result;
 
 	for (i = 0; i < length; i++) {
+<<<<<<< HEAD
 		/* for the last byte TWSI_CTL_AAK must not be set */
 		if (i + 1 == length)
+=======
+		/*
+		 * For the last byte to receive TWSI_CTL_AAK must not be set.
+		 *
+		 * A special case is I2C_M_RECV_LEN where we don't know the
+		 * additional length yet. If recv_len is set we assume we're
+		 * not reading the final byte and therefore need to set
+		 * TWSI_CTL_AAK.
+		 */
+		if ((i + 1 == length) && !(recv_len && i == 0))
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 			final_read = true;
 
 		/* clear iflg to allow next event */
@@ -950,12 +986,17 @@ static int octeon_i2c_read(struct octeon_i2c *i2c, int target,
 
 		data[i] = octeon_i2c_data_read(i2c);
 		if (recv_len && i == 0) {
+<<<<<<< HEAD
 			if (data[i] > I2C_SMBUS_BLOCK_MAX + 1) {
 				dev_err(i2c->dev,
 					"%s: read len > I2C_SMBUS_BLOCK_MAX %d\n",
 					__func__, data[i]);
 				return -EPROTO;
 			}
+=======
+			if (data[i] > I2C_SMBUS_BLOCK_MAX + 1)
+				return -EPROTO;
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 			length += data[i];
 		}
 

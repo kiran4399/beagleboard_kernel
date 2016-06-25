@@ -57,6 +57,13 @@ irqreturn_t st_sensors_trigger_handler(int irq, void *p)
 	struct iio_poll_func *pf = p;
 	struct iio_dev *indio_dev = pf->indio_dev;
 	struct st_sensor_data *sdata = iio_priv(indio_dev);
+	s64 timestamp;
+
+	/* If we do timetamping here, do it before reading the values */
+	if (sdata->hw_irq_trigger)
+		timestamp = sdata->hw_timestamp;
+	else
+		timestamp = iio_get_time_ns();
 
 	/* If we have a status register, check if this IRQ came from us */
 	if (sdata->sensor_settings->drdy_irq.addr_stat_drdy) {
@@ -81,7 +88,7 @@ irqreturn_t st_sensors_trigger_handler(int irq, void *p)
 		goto st_sensors_get_buffer_element_error;
 
 	iio_push_to_buffers_with_timestamp(indio_dev, sdata->buffer_data,
-		pf->timestamp);
+					   timestamp);
 
 st_sensors_get_buffer_element_error:
 	iio_trigger_notify_done(indio_dev->trig);

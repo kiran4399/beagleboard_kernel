@@ -525,7 +525,11 @@ static int ad5592r_alloc_channels(struct ad5592r_state *st)
 
 	device_for_each_child_node(st->dev, child) {
 		ret = fwnode_property_read_u32(child, "reg", &reg);
+<<<<<<< HEAD
 		if (ret || reg > ARRAY_SIZE(st->channel_modes))
+=======
+		if (ret || reg >= ARRAY_SIZE(st->channel_modes))
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 			continue;
 
 		ret = fwnode_property_read_u32(child, "adi,mode", &tmp);

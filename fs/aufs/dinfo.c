@@ -69,7 +69,11 @@ void au_di_free(struct au_dinfo *dinfo)
 	bindex = dinfo->di_btop;
 	if (bindex >= 0) {
 		bbot = dinfo->di_bbot;
+<<<<<<< HEAD
 		p = dinfo->di_hdentry + bindex;
+=======
+		p = au_hdentry(dinfo, bindex);
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 		while (bindex++ <= bbot)
 			au_hdput(p++);
 	}
@@ -321,7 +325,11 @@ struct dentry *au_h_dptr(struct dentry *dentry, aufs_bindex_t bindex)
 	if (au_dbtop(dentry) < 0 || bindex < au_dbtop(dentry))
 		return NULL;
 	AuDebugOn(bindex < 0);
+<<<<<<< HEAD
 	d = au_di(dentry)->di_hdentry[0 + bindex].hd_dentry;
+=======
+	d = au_hdentry(au_di(dentry), bindex)->hd_dentry;
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 	AuDebugOn(d && au_dcount(d) <= 0);
 	return d;
 }
@@ -410,11 +418,21 @@ aufs_bindex_t au_dbtaildir(struct dentry *dentry)
 void au_set_h_dptr(struct dentry *dentry, aufs_bindex_t bindex,
 		   struct dentry *h_dentry)
 {
+<<<<<<< HEAD
 	struct au_hdentry *hd = au_di(dentry)->di_hdentry + bindex;
+=======
+	struct au_dinfo *dinfo;
+	struct au_hdentry *hd;
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 	struct au_branch *br;
 
 	DiMustWriteLock(dentry);
 
+<<<<<<< HEAD
+=======
+	dinfo = au_di(dentry);
+	hd = au_hdentry(dinfo, bindex);
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 	au_hdput(hd);
 	hd->hd_dentry = h_dentry;
 	if (h_dentry) {
@@ -464,6 +482,10 @@ void au_update_dbrange(struct dentry *dentry, int do_put_zero)
 	struct au_dinfo *dinfo;
 	struct dentry *h_d;
 	struct au_hdentry *hdp;
+<<<<<<< HEAD
+=======
+	aufs_bindex_t bindex, bbot;
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 
 	DiMustWriteLock(dentry);
 
@@ -471,6 +493,7 @@ void au_update_dbrange(struct dentry *dentry, int do_put_zero)
 	if (!dinfo || dinfo->di_btop < 0)
 		return;
 
+<<<<<<< HEAD
 	hdp = dinfo->di_hdentry;
 	if (do_put_zero) {
 		aufs_bindex_t bindex, bbot;
@@ -478,14 +501,29 @@ void au_update_dbrange(struct dentry *dentry, int do_put_zero)
 		bbot = dinfo->di_bbot;
 		for (bindex = dinfo->di_btop; bindex <= bbot; bindex++) {
 			h_d = hdp[0 + bindex].hd_dentry;
+=======
+	if (do_put_zero) {
+		bbot = dinfo->di_bbot;
+		bindex = dinfo->di_btop;
+		hdp = au_hdentry(dinfo, bindex);
+		for (; bindex <= bbot; bindex++, hdp++) {
+			h_d = hdp->hd_dentry;
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 			if (h_d && d_is_negative(h_d))
 				au_set_h_dptr(dentry, bindex, NULL);
 		}
 	}
 
+<<<<<<< HEAD
 	dinfo->di_btop = -1;
 	while (++dinfo->di_btop <= dinfo->di_bbot)
 		if (hdp[0 + dinfo->di_btop].hd_dentry)
+=======
+	dinfo->di_btop = 0;
+	hdp = au_hdentry(dinfo, dinfo->di_btop);
+	for (; dinfo->di_btop <= dinfo->di_bbot; dinfo->di_btop++, hdp++)
+		if (hdp->hd_dentry)
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 			break;
 	if (dinfo->di_btop > dinfo->di_bbot) {
 		dinfo->di_btop = -1;
@@ -493,9 +531,15 @@ void au_update_dbrange(struct dentry *dentry, int do_put_zero)
 		return;
 	}
 
+<<<<<<< HEAD
 	dinfo->di_bbot++;
 	while (0 <= --dinfo->di_bbot)
 		if (hdp[0 + dinfo->di_bbot].hd_dentry)
+=======
+	hdp = au_hdentry(dinfo, dinfo->di_bbot);
+	for (; dinfo->di_bbot >= 0; dinfo->di_bbot--, hdp--)
+		if (hdp->hd_dentry)
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 			break;
 	AuDebugOn(dinfo->di_btop > dinfo->di_bbot || dinfo->di_bbot < 0);
 }

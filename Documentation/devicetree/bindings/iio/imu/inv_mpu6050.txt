@@ -1,12 +1,32 @@
 InvenSense MPU-6050 Six-Axis (Gyro + Accelerometer) MEMS MotionTracking Device
 
-http://www.invensense.com/mems/gyro/mpu6050.html
-
 Required properties:
- - compatible : should be "invensense,mpu6050"
- - reg : the I2C address of the sensor
+ - compatible : one of "invensense,mpu6000", "invensense,mpu6050",
+	"invensense,mpu6000" or "invensense,mpu9150"
+ - reg : the I2C or SPI address of the sensor
  - interrupt-parent : should be the phandle for the interrupt controller
  - interrupts : interrupt mapping for GPIO IRQ
+
+Optional properties:
+ - mount-matrix: an optional 3x3 mounting rotation matrix
+ - invensense,i2c-aux-master: operate aux i2c in "master" mode (default is bypass).
+
+The MPU has an auxiliary i2c bus for additional sensors. Devices attached this
+way can be described as for a regular linux i2c bus.
+
+It is possible to interact with aux devices in "bypass" or "master" mode. In
+"bypass" mode the auxiliary SDA/SCL lines are connected directly to the main i2c
+interface. In "master" mode access to aux devices is done by instructing the
+MPU to read or write i2c bytes.
+
+In "bypass" mode aux devices are listed behind a "i2c@0" node with reg = <0>;
+In "master" mode aux devices are listed behind a "i2c@1" node with reg = <1>;
+
+The master and bypass modes are not supported at the same time. The
+"invensense,i2c-aux-master" property must be set to activate master mode.
+Bypass mode is generally faster but master mode also works when the MPU is
+connected via SPI.
+
 
 Example:
 	mpu6050@68 {
@@ -14,4 +34,47 @@ Example:
 		reg = <0x68>;
 		interrupt-parent = <&gpio1>;
 		interrupts = <18 1>;
+	};
+
+Example describing mpu9150 (which includes an ak9875 on chip):
+	mpu9150@68 {
+		compatible = "invensense,mpu9150";
+		reg = <0x68>;
+		interrupt-parent = <&gpio1>;
+		interrupts = <18 1>;
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+		i2c@0 {
+			reg = <0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			ak8975@0c {
+				compatible = "ak,ak8975";
+				reg = <0x0c>;
+			};
+		};
+	};
+
+Example describing a mpu6500 via SPI with an hmc5883l on auxiliary i2c:
+	mpu6500@0 {
+		compatible = "invensense,mpu6500";
+		reg = <0x0>;
+		spi-max-frequency = <1000000>;
+		interrupt-parent = <&gpio1>;
+		interrupts = <31 1>;
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+		i2c@1 {
+			reg = <1>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			hmc5883l@1e {
+				compatible = "honeywell,hmc5883l";
+				reg = <0x1e>;
+			};
+		};
 	};

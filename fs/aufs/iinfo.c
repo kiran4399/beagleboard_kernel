@@ -135,7 +135,11 @@ void au_update_ibrange(struct inode *inode, int do_put_zero)
 	struct au_iinfo *iinfo;
 	aufs_bindex_t bindex, bbot;
 
+<<<<<<< HEAD
 	AuDebugOn(is_bad_inode(inode));
+=======
+	AuDebugOn(au_is_bad_inode(inode));
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 	IiMustWriteLock(inode);
 
 	iinfo = au_ii(inode);
@@ -193,6 +197,10 @@ int au_iinfo_init(struct inode *inode)
 {
 	struct au_iinfo *iinfo;
 	struct super_block *sb;
+<<<<<<< HEAD
+=======
+	struct au_hinode *hi;
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 	int nbr, i;
 
 	sb = inode->i_sb;
@@ -200,12 +208,22 @@ int au_iinfo_init(struct inode *inode)
 	nbr = au_sbbot(sb) + 1;
 	if (unlikely(nbr <= 0))
 		nbr = 1;
+<<<<<<< HEAD
 	iinfo->ii_hinode = kmalloc_array(nbr, sizeof(*iinfo->ii_hinode),
 					 GFP_NOFS);
 	if (iinfo->ii_hinode) {
 		au_ninodes_inc(sb);
 		for (i = 0; i < nbr; i++)
 			au_hinode_init(iinfo->ii_hinode + i);
+=======
+	hi = kmalloc_array(nbr, sizeof(*iinfo->ii_hinode), GFP_NOFS);
+	if (hi) {
+		au_ninodes_inc(sb);
+
+		iinfo->ii_hinode = hi;
+		for (i = 0; i < nbr; i++, hi++)
+			au_hinode_init(hi);
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 
 		iinfo->ii_generation.ig_generation = au_sigen(sb);
 		iinfo->ii_btop = -1;
@@ -226,9 +244,17 @@ int au_hinode_realloc(struct au_iinfo *iinfo, int nbr)
 	err = -ENOMEM;
 	hip = krealloc(iinfo->ii_hinode, sizeof(*hip) * nbr, GFP_NOFS);
 	if (hip) {
+<<<<<<< HEAD
 		for (i = iinfo->ii_bbot + 1; i < nbr; i++)
 			au_hinode_init(hip + i);
 		iinfo->ii_hinode = hip;
+=======
+		iinfo->ii_hinode = hip;
+		i = iinfo->ii_bbot + 1;
+		hip += i;
+		for (; i < nbr; i++, hip++)
+			au_hinode_init(hip);
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 		err = 0;
 	}
 
@@ -243,7 +269,11 @@ void au_iinfo_fin(struct inode *inode)
 	aufs_bindex_t bindex, bbot;
 	const unsigned char unlinked = !inode->i_nlink;
 
+<<<<<<< HEAD
 	AuDebugOn(is_bad_inode(inode));
+=======
+	AuDebugOn(au_is_bad_inode(inode));
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 
 	sb = inode->i_sb;
 	au_ninodes_dec(sb);

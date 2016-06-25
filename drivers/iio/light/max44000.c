@@ -147,7 +147,10 @@ static const struct iio_chan_spec max44000_channels[] = {
 	{
 		.type = IIO_PROXIMITY,
 		.info_mask_separate = BIT(IIO_CHAN_INFO_RAW),
+<<<<<<< HEAD
 		.info_mask_shared_by_type = BIT(IIO_CHAN_INFO_SCALE),
+=======
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 		.scan_index = MAX44000_SCAN_INDEX_PRX,
 		.scan_type = {
 			.sign		= 'u',
