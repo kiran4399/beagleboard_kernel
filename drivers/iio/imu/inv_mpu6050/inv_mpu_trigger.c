@@ -61,6 +61,11 @@ static int inv_mpu6050_set_enable(struct iio_dev *indio_dev, bool enable)
 			if (result)
 				return result;
 		}
+
+		result = inv_mpu_slave_enable_mask(st, *indio_dev->active_scan_mask);
+		if (result)
+			return result;
+
 		result = inv_reset_fifo(indio_dev);
 		if (result)
 			return result;
@@ -69,11 +74,18 @@ static int inv_mpu6050_set_enable(struct iio_dev *indio_dev, bool enable)
 		if (result)
 			return result;
 
-		result = regmap_write(st->map, st->reg->int_enable, 0);
+		result = regmap_update_bits(st->map, st->reg->int_enable,
+					INV_MPU6050_BIT_DATA_RDY_EN, 0);
 		if (result)
 			return result;
 
-		result = regmap_write(st->map, st->reg->user_ctrl, 0);
+		st->chip_config.user_ctrl &= ~INV_MPU6050_BIT_FIFO_EN;
+		result = regmap_write(st->map, st->reg->user_ctrl,
+				      st->chip_config.user_ctrl);
+		if (result)
+			return result;
+
+		result = inv_mpu_slave_enable_mask(st, 0);
 		if (result)
 			return result;
 
@@ -122,14 +134,6 @@ int inv_mpu6050_probe_trigger(struct iio_dev *indio_dev)
 					  indio_dev->id);
 	if (!st->trig)
 		return -ENOMEM;
-
-	ret = devm_request_irq(&indio_dev->dev, st->irq,
-			       &iio_trigger_generic_data_rdy_poll,
-			       IRQF_TRIGGER_RISING,
-			       "inv_mpu",
-			       st->trig);
-	if (ret)
-		return ret;
 
 	st->trig->dev.parent = regmap_get_device(st->map);
 	st->trig->ops = &inv_mpu_trigger_ops;
