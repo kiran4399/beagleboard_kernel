@@ -17,6 +17,7 @@
 #include <linux/iio/common/st_sensors.h>
 #include "st_sensors_core.h"
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 
 /**
@@ -86,6 +87,8 @@ out_poll:
 	return IRQ_HANDLED;
 }
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 
 int st_sensors_allocate_trigger(struct iio_dev *indio_dev,
 				const struct iio_trigger_ops *trigger_ops)
@@ -98,6 +101,7 @@ int st_sensors_allocate_trigger(struct iio_dev *indio_dev,
 	if (sdata->trig == NULL) {
 		dev_err(&indio_dev->dev, "failed to allocate iio trigger.\n");
 		return -ENOMEM;
+<<<<<<< HEAD
 <<<<<<< HEAD
 	}
 
@@ -179,6 +183,45 @@ int st_sensors_allocate_trigger(struct iio_dev *indio_dev,
 	}
 
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+	}
+
+	irq = sdata->get_irq_data_ready(indio_dev);
+	irq_trig = irqd_get_trigger_type(irq_get_irq_data(irq));
+	/*
+	 * If the IRQ is triggered on falling edge, we need to mark the
+	 * interrupt as active low, if the hardware supports this.
+	 */
+	if (irq_trig == IRQF_TRIGGER_FALLING) {
+		if (!sdata->sensor_settings->drdy_irq.addr_ihl) {
+			dev_err(&indio_dev->dev,
+				"falling edge specified for IRQ but hardware "
+				"only support rising edge, will request "
+				"rising edge\n");
+			irq_trig = IRQF_TRIGGER_RISING;
+		} else {
+			/* Set up INT active low i.e. falling edge */
+			err = st_sensors_write_data_with_mask(indio_dev,
+				sdata->sensor_settings->drdy_irq.addr_ihl,
+				sdata->sensor_settings->drdy_irq.mask_ihl, 1);
+			if (err < 0)
+				goto iio_trigger_free;
+			dev_info(&indio_dev->dev,
+				 "interrupts on the falling edge\n");
+		}
+	} else if (irq_trig == IRQF_TRIGGER_RISING) {
+		dev_info(&indio_dev->dev,
+			 "interrupts on the rising edge\n");
+
+	} else {
+		dev_err(&indio_dev->dev,
+		"unsupported IRQ trigger specified (%lx), only "
+			"rising and falling edges supported, enforce "
+			"rising edge\n", irq_trig);
+		irq_trig = IRQF_TRIGGER_RISING;
+	}
+
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	/*
 	 * If the interrupt pin is Open Drain, by definition this
 	 * means that the interrupt line may be shared with other
@@ -192,6 +235,7 @@ int st_sensors_allocate_trigger(struct iio_dev *indio_dev,
 		irq_trig |= IRQF_SHARED;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 	err = request_threaded_irq(irq,
 			iio_trigger_generic_data_rdy_poll,
 			NULL,
@@ -203,6 +247,11 @@ int st_sensors_allocate_trigger(struct iio_dev *indio_dev,
 			st_sensors_irq_handler,
 			st_sensors_irq_thread,
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+	err = request_threaded_irq(irq,
+			iio_trigger_generic_data_rdy_poll,
+			NULL,
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 			irq_trig,
 			sdata->trig->name,
 			sdata->trig);

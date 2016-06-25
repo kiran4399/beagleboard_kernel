@@ -267,6 +267,7 @@ static void octeon_i2c_int_disable78(struct octeon_i2c *i2c)
  *
  * The interrupt will be asserted when there is non-STAT_IDLE state in
  * the SW_TWSI_EOP_TWSI_STAT register.
+<<<<<<< HEAD
  */
 static void octeon_i2c_hlc_int_enable78(struct octeon_i2c *i2c)
 {
@@ -283,6 +284,24 @@ static void octeon_i2c_hlc_int_disable78(struct octeon_i2c *i2c)
 /*
  * Cleanup low-level state & enable high-level controller.
  */
+=======
+ */
+static void octeon_i2c_hlc_int_enable78(struct octeon_i2c *i2c)
+{
+	atomic_inc_return(&i2c->hlc_int_enable_cnt);
+	enable_irq(i2c->hlc_irq);
+}
+
+/* disable the ST interrupt */
+static void octeon_i2c_hlc_int_disable78(struct octeon_i2c *i2c)
+{
+	__octeon_i2c_irq_disable(&i2c->hlc_int_enable_cnt, i2c->hlc_irq);
+}
+
+/*
+ * Cleanup low-level state & enable high-level controller.
+ */
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 static void octeon_i2c_hlc_enable(struct octeon_i2c *i2c)
 {
 	int try = 0;
@@ -327,11 +346,34 @@ static irqreturn_t octeon_i2c_isr(int irq, void *dev_id)
 	struct octeon_i2c *i2c = dev_id;
 
 	i2c->int_disable(i2c);
+<<<<<<< HEAD
 	wake_up(&i2c->queue);
 
 	return IRQ_HANDLED;
 }
 
+/* HLC interrupt service routine */
+static irqreturn_t octeon_i2c_hlc_isr78(int irq, void *dev_id)
+{
+	struct octeon_i2c *i2c = dev_id;
+
+	i2c->hlc_int_disable(i2c);
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
+	wake_up(&i2c->queue);
+
+	return IRQ_HANDLED;
+}
+
+<<<<<<< HEAD
+static bool octeon_i2c_test_iflg(struct octeon_i2c *i2c)
+{
+	return (octeon_i2c_ctl_read(i2c) & TWSI_CTL_IFLG);
+}
+
+static bool octeon_i2c_test_ready(struct octeon_i2c *i2c, bool *first)
+{
+=======
 /* HLC interrupt service routine */
 static irqreturn_t octeon_i2c_hlc_isr78(int irq, void *dev_id)
 {
@@ -350,6 +392,7 @@ static bool octeon_i2c_test_iflg(struct octeon_i2c *i2c)
 
 static bool octeon_i2c_test_ready(struct octeon_i2c *i2c, bool *first)
 {
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	if (octeon_i2c_test_iflg(i2c))
 		return true;
 
@@ -383,6 +426,7 @@ static int octeon_i2c_wait(struct octeon_i2c *i2c)
 	 */
 	if (i2c->broken_irq_mode) {
 		u64 end = get_jiffies_64() + i2c->adap.timeout;
+<<<<<<< HEAD
 
 		while (!octeon_i2c_test_iflg(i2c) &&
 		       time_before64(get_jiffies_64(), end))
@@ -402,6 +446,30 @@ static int octeon_i2c_wait(struct octeon_i2c *i2c)
 		i2c->broken_irq_mode = true;
 		return 0;
 	}
+=======
+
+		while (!octeon_i2c_test_iflg(i2c) &&
+		       time_before64(get_jiffies_64(), end))
+			usleep_range(I2C_OCTEON_EVENT_WAIT / 2, I2C_OCTEON_EVENT_WAIT);
+
+		return octeon_i2c_test_iflg(i2c) ? 0 : -ETIMEDOUT;
+	}
+
+	i2c->int_enable(i2c);
+	time_left = wait_event_timeout(i2c->queue, octeon_i2c_test_ready(i2c, &first),
+				       i2c->adap.timeout);
+	i2c->int_disable(i2c);
+
+	if (i2c->broken_irq_check && !time_left &&
+	    octeon_i2c_test_iflg(i2c)) {
+		dev_err(i2c->dev, "broken irq connection detected, switching to polling mode.\n");
+		i2c->broken_irq_mode = true;
+		return 0;
+	}
+
+	if (!time_left)
+		return -ETIMEDOUT;
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 
 	if (!time_left)
 		return -ETIMEDOUT;
@@ -787,6 +855,9 @@ static void octeon_i2c_set_clock(struct octeon_i2c *i2c)
 			}
 		}
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	}
 	octeon_i2c_reg_write(i2c, SW_TWSI_OP_TWSI_CLK, thp);
 	octeon_i2c_reg_write(i2c, SW_TWSI_EOP_TWSI_CLKCTL, (mdiv << 3) | ndiv);
@@ -805,6 +876,7 @@ static int octeon_i2c_init_lowlevel(struct octeon_i2c *i2c)
 		status = octeon_i2c_stat_read(i2c);
 		if (status == STAT_IDLE)
 			break;
+<<<<<<< HEAD
 =======
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 	}
@@ -830,6 +902,10 @@ static int octeon_i2c_init_lowlevel(struct octeon_i2c *i2c)
 	}
 
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+	}
+
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	if (status != STAT_IDLE) {
 		dev_err(i2c->dev, "%s: TWSI_RST failed! (0x%x)\n",
 			__func__, status);
@@ -959,6 +1035,7 @@ static int octeon_i2c_read(struct octeon_i2c *i2c, int target,
 
 	for (i = 0; i < length; i++) {
 <<<<<<< HEAD
+<<<<<<< HEAD
 		/* for the last byte TWSI_CTL_AAK must not be set */
 		if (i + 1 == length)
 =======
@@ -972,6 +1049,10 @@ static int octeon_i2c_read(struct octeon_i2c *i2c, int target,
 		 */
 		if ((i + 1 == length) && !(recv_len && i == 0))
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+		/* for the last byte TWSI_CTL_AAK must not be set */
+		if (i + 1 == length)
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 			final_read = true;
 
 		/* clear iflg to allow next event */
@@ -987,16 +1068,22 @@ static int octeon_i2c_read(struct octeon_i2c *i2c, int target,
 		data[i] = octeon_i2c_data_read(i2c);
 		if (recv_len && i == 0) {
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 			if (data[i] > I2C_SMBUS_BLOCK_MAX + 1) {
 				dev_err(i2c->dev,
 					"%s: read len > I2C_SMBUS_BLOCK_MAX %d\n",
 					__func__, data[i]);
 				return -EPROTO;
 			}
+<<<<<<< HEAD
 =======
 			if (data[i] > I2C_SMBUS_BLOCK_MAX + 1)
 				return -EPROTO;
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 			length += data[i];
 		}
 

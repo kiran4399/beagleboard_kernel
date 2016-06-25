@@ -880,6 +880,9 @@ static int bmp280_probe(struct i2c_client *client,
 		return ret;
 	if (chip_id != id->driver_data) {
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 		dev_err(&client->dev, "bad chip id.  expected %x got %x\n",
 			BMP280_CHIP_ID, chip_id);
 =======

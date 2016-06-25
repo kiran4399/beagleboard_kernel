@@ -85,10 +85,14 @@ static int bh1780_debugfs_reg_access(struct iio_dev *indio_dev,
 
 	if (!readval)
 <<<<<<< HEAD
+<<<<<<< HEAD
 		bh1780_write(bh1780, (u8)reg, (u8)writeval);
 =======
 		return bh1780_write(bh1780, (u8)reg, (u8)writeval);
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+		bh1780_write(bh1780, (u8)reg, (u8)writeval);
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 
 	ret = bh1780_read(bh1780, (u8)reg);
 	if (ret < 0)
@@ -192,10 +196,14 @@ static int bh1780_probe(struct i2c_client *client,
 	indio_dev->dev.parent = &client->dev;
 	indio_dev->info = &bh1780_info;
 <<<<<<< HEAD
+<<<<<<< HEAD
 	indio_dev->name = id->name;
 =======
 	indio_dev->name = "bh1780";
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+	indio_dev->name = id->name;
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	indio_dev->channels = bh1780_channels;
 	indio_dev->num_channels = ARRAY_SIZE(bh1780_channels);
 	indio_dev->modes = INDIO_DIRECT_MODE;
@@ -235,11 +243,15 @@ static int bh1780_runtime_suspend(struct device *dev)
 {
 	struct i2c_client *client = to_i2c_client(dev);
 <<<<<<< HEAD
+<<<<<<< HEAD
 	struct bh1780_data *bh1780 = i2c_get_clientdata(client);
 =======
 	struct iio_dev *indio_dev = i2c_get_clientdata(client);
 	struct bh1780_data *bh1780 = iio_priv(indio_dev);
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+	struct bh1780_data *bh1780 = i2c_get_clientdata(client);
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	int ret;
 
 	ret = bh1780_write(bh1780, BH1780_REG_CONTROL, BH1780_POFF);
@@ -255,11 +267,15 @@ static int bh1780_runtime_resume(struct device *dev)
 {
 	struct i2c_client *client = to_i2c_client(dev);
 <<<<<<< HEAD
+<<<<<<< HEAD
 	struct bh1780_data *bh1780 = i2c_get_clientdata(client);
 =======
 	struct iio_dev *indio_dev = i2c_get_clientdata(client);
 	struct bh1780_data *bh1780 = iio_priv(indio_dev);
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+	struct bh1780_data *bh1780 = i2c_get_clientdata(client);
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	int ret;
 
 	ret = bh1780_write(bh1780, BH1780_REG_CONTROL, BH1780_PON);

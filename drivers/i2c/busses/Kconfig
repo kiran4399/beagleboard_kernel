@@ -965,7 +965,11 @@ config I2C_XILINX
 
 config I2C_XLR
 	tristate "Netlogic XLR and Sigma Designs I2C support"
+<<<<<<< HEAD
 	depends on CPU_XLR || ARCH_TANGO
+=======
+	depends on CPU_XLR || ARCH_TANGOX
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	help
 	  This driver enables support for the on-chip I2C interface of
 	  the Netlogic XLR/XLS MIPS processors and Sigma Designs SOCs.
@@ -985,7 +989,10 @@ config I2C_XLP9XX
 
 config I2C_RCAR
 	tristate "Renesas R-Car I2C Controller"
+<<<<<<< HEAD
 	depends on HAS_DMA
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	depends on ARCH_RENESAS || COMPILE_TEST
 	select I2C_SLAVE
 	help

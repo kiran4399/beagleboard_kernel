@@ -40,10 +40,14 @@
 #include <linux/limits.h>
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 #define AUFS_VERSION	"4.4-20160530"
 =======
 #define AUFS_VERSION	"4.4-20160620"
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+#define AUFS_VERSION	"4.4-20160523"
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 
 /* todo? move this to linux-2.6.19/include/magic.h */
 #define AUFS_SUPER_MAGIC	('a' << 24 | 'u' << 16 | 'f' << 8 | 's')

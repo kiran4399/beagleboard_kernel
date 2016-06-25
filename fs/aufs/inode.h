@@ -481,6 +481,7 @@ static inline struct au_hinode *au_hinode(struct au_iinfo *iinfo,
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 static inline int au_is_bad_inode(struct inode *inode)
 {
@@ -488,6 +489,8 @@ static inline int au_is_bad_inode(struct inode *inode)
 }
 
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 static inline aufs_bindex_t au_ii_br_id(struct inode *inode,
 					aufs_bindex_t bindex)
 {

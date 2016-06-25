@@ -159,6 +159,7 @@ static inline void au_h_dentry_init(struct au_hdentry *hdentry)
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 static inline struct au_hdentry *au_hdentry(struct au_dinfo *di,
 					    aufs_bindex_t bindex)
@@ -167,6 +168,8 @@ static inline struct au_hdentry *au_hdentry(struct au_dinfo *di,
 }
 
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 static inline void au_hdput(struct au_hdentry *hd)
 {
 	if (hd)

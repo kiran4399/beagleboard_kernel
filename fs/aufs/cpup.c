@@ -1101,6 +1101,7 @@ static int au_do_cpup_wh(struct au_cp_generic *cpg, struct dentry *wh_dentry,
 	unsigned int flags_orig;
 	aufs_bindex_t bsrc_orig;
 <<<<<<< HEAD
+<<<<<<< HEAD
 	struct dentry *h_d_dst, *h_d_start;
 	struct au_dinfo *dinfo;
 	struct au_hdentry *hdp;
@@ -1111,6 +1112,11 @@ static int au_do_cpup_wh(struct au_cp_generic *cpg, struct dentry *wh_dentry,
 		struct dentry *h_dentry;
 	} hdst, hsrc;
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+	struct dentry *h_d_dst, *h_d_start;
+	struct au_dinfo *dinfo;
+	struct au_hdentry *hdp;
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 
 	dinfo = au_di(cpg->dentry);
 	AuRwMustWriteLock(&dinfo->di_rwsem);
@@ -1118,6 +1124,9 @@ static int au_do_cpup_wh(struct au_cp_generic *cpg, struct dentry *wh_dentry,
 	bsrc_orig = cpg->bsrc;
 	cpg->bsrc = dinfo->di_btop;
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	hdp = dinfo->di_hdentry;
 	h_d_dst = hdp[0 + cpg->bdst].hd_dentry;
 	dinfo->di_btop = cpg->bdst;
@@ -1126,6 +1135,7 @@ static int au_do_cpup_wh(struct au_cp_generic *cpg, struct dentry *wh_dentry,
 	if (file) {
 		h_d_start = hdp[0 + cpg->bsrc].hd_dentry;
 		hdp[0 + cpg->bsrc].hd_dentry = au_hf_top(file)->f_path.dentry;
+<<<<<<< HEAD
 =======
 	hdst.hd = au_hdentry(dinfo, cpg->bdst);
 	hdst.h_dentry = hdst.hd->hd_dentry;
@@ -1138,6 +1148,8 @@ static int au_do_cpup_wh(struct au_cp_generic *cpg, struct dentry *wh_dentry,
 		hsrc.h_dentry = hsrc.hd->hd_dentry;
 		hsrc.hd->hd_dentry = au_hf_top(file)->f_path.dentry;
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	}
 	flags_orig = cpg->flags;
 	cpg->flags = !AuCpup_DTIME;
@@ -1147,6 +1159,7 @@ static int au_do_cpup_wh(struct au_cp_generic *cpg, struct dentry *wh_dentry,
 		if (!err)
 			err = au_reopen_nondir(file);
 <<<<<<< HEAD
+<<<<<<< HEAD
 		hdp[0 + cpg->bsrc].hd_dentry = h_d_start;
 	}
 	hdp[0 + cpg->bdst].hd_dentry = h_d_dst;
@@ -1155,6 +1168,11 @@ static int au_do_cpup_wh(struct au_cp_generic *cpg, struct dentry *wh_dentry,
 	}
 	hdst.hd->hd_dentry = hdst.h_dentry;
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+		hdp[0 + cpg->bsrc].hd_dentry = h_d_start;
+	}
+	hdp[0 + cpg->bdst].hd_dentry = h_d_dst;
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	dinfo->di_btop = cpg->bsrc;
 	cpg->bsrc = bsrc_orig;
 

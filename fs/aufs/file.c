@@ -353,11 +353,15 @@ static int au_reopen_wh(struct file *file, aufs_bindex_t btgt,
 	btop = dinfo->di_btop;
 	dinfo->di_btop = btgt;
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	hdp = dinfo->di_hdentry;
 	h_dentry = hdp[0 + btgt].hd_dentry;
 	hdp[0 + btgt].hd_dentry = hi_wh;
 	err = au_reopen_nondir(file);
 	hdp[0 + btgt].hd_dentry = h_dentry;
+<<<<<<< HEAD
 =======
 	hdp = au_hdentry(dinfo, btgt);
 	h_dentry = hdp->hd_dentry;
@@ -365,6 +369,8 @@ static int au_reopen_wh(struct file *file, aufs_bindex_t btgt,
 	err = au_reopen_nondir(file);
 	hdp->hd_dentry = h_dentry;
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	dinfo->di_btop = btop;
 
 	return err;

@@ -136,10 +136,14 @@ void au_update_ibrange(struct inode *inode, int do_put_zero)
 	aufs_bindex_t bindex, bbot;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 	AuDebugOn(is_bad_inode(inode));
 =======
 	AuDebugOn(au_is_bad_inode(inode));
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+	AuDebugOn(is_bad_inode(inode));
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	IiMustWriteLock(inode);
 
 	iinfo = au_ii(inode);
@@ -198,9 +202,12 @@ int au_iinfo_init(struct inode *inode)
 	struct au_iinfo *iinfo;
 	struct super_block *sb;
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 	struct au_hinode *hi;
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	int nbr, i;
 
 	sb = inode->i_sb;
@@ -209,12 +216,16 @@ int au_iinfo_init(struct inode *inode)
 	if (unlikely(nbr <= 0))
 		nbr = 1;
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	iinfo->ii_hinode = kmalloc_array(nbr, sizeof(*iinfo->ii_hinode),
 					 GFP_NOFS);
 	if (iinfo->ii_hinode) {
 		au_ninodes_inc(sb);
 		for (i = 0; i < nbr; i++)
 			au_hinode_init(iinfo->ii_hinode + i);
+<<<<<<< HEAD
 =======
 	hi = kmalloc_array(nbr, sizeof(*iinfo->ii_hinode), GFP_NOFS);
 	if (hi) {
@@ -224,6 +235,8 @@ int au_iinfo_init(struct inode *inode)
 		for (i = 0; i < nbr; i++, hi++)
 			au_hinode_init(hi);
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 
 		iinfo->ii_generation.ig_generation = au_sigen(sb);
 		iinfo->ii_btop = -1;
@@ -245,6 +258,7 @@ int au_hinode_realloc(struct au_iinfo *iinfo, int nbr)
 	hip = krealloc(iinfo->ii_hinode, sizeof(*hip) * nbr, GFP_NOFS);
 	if (hip) {
 <<<<<<< HEAD
+<<<<<<< HEAD
 		for (i = iinfo->ii_bbot + 1; i < nbr; i++)
 			au_hinode_init(hip + i);
 		iinfo->ii_hinode = hip;
@@ -255,6 +269,11 @@ int au_hinode_realloc(struct au_iinfo *iinfo, int nbr)
 		for (; i < nbr; i++, hip++)
 			au_hinode_init(hip);
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+		for (i = iinfo->ii_bbot + 1; i < nbr; i++)
+			au_hinode_init(hip + i);
+		iinfo->ii_hinode = hip;
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 		err = 0;
 	}
 
@@ -270,10 +289,14 @@ void au_iinfo_fin(struct inode *inode)
 	const unsigned char unlinked = !inode->i_nlink;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 	AuDebugOn(is_bad_inode(inode));
 =======
 	AuDebugOn(au_is_bad_inode(inode));
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+	AuDebugOn(is_bad_inode(inode));
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 
 	sb = inode->i_sb;
 	au_ninodes_dec(sb);

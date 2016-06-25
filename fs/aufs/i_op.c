@@ -308,12 +308,17 @@ static int aufs_atomic_open(struct inode *dir, struct dentry *dentry,
 			 */
 			d_drop(d);
 <<<<<<< HEAD
+<<<<<<< HEAD
 			dput(d);
 			AuDbgDentry(d);
 =======
 			AuDbgDentry(d);
 			dput(d);
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+			dput(d);
+			AuDbgDentry(d);
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 		}
 		AuDbgDentry(dentry);
 	}

@@ -32,10 +32,14 @@ static void au_hfsn_free_mark(struct fsnotify_mark *mark)
 	struct au_hnotify *hn = container_of(mark, struct au_hnotify,
 					     hn_mark);
 <<<<<<< HEAD
+<<<<<<< HEAD
 	AuDbg("here\n");
 =======
 	/* AuDbg("here\n"); */
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+	AuDbg("here\n");
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	au_cache_free_hnotify(hn);
 	smp_mb__before_atomic();
 	if (atomic64_dec_and_test(&au_hfsn_ifree))
@@ -67,6 +71,11 @@ static int au_hfsn_alloc(struct au_hinode *hinode)
 	lockdep_off();
 	err = fsnotify_add_mark(mark, br->br_hfsn->hfsn_group, hinode->hi_inode,
 				 /*mnt*/NULL, /*allow_dups*/1);
+<<<<<<< HEAD
+=======
+	/* even if err */
+	fsnotify_put_mark(mark);
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	lockdep_on();
 
 	return err;
@@ -88,7 +97,10 @@ static int au_hfsn_free(struct au_hinode *hinode, struct au_hnotify *hn)
 	spin_unlock(&mark->lock);
 	lockdep_off();
 	fsnotify_destroy_mark(mark, group);
+<<<<<<< HEAD
 	fsnotify_put_mark(mark);
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	fsnotify_put_group(group);
 	lockdep_on();
 
@@ -160,10 +172,14 @@ static void au_hfsn_free_group(struct fsnotify_group *group)
 	struct au_br_hfsnotify *hfsn = group->private;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 	AuDbg("here\n");
 =======
 	/* AuDbg("here\n"); */
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+	AuDbg("here\n");
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	kfree(hfsn);
 }
 

@@ -147,10 +147,14 @@ void au_dpri_inode(struct inode *inode)
 
 	err = do_pri_inode(-1, inode, -1, NULL);
 <<<<<<< HEAD
+<<<<<<< HEAD
 	if (err || !au_test_aufs(inode->i_sb) || is_bad_inode(inode))
 =======
 	if (err || !au_test_aufs(inode->i_sb) || au_is_bad_inode(inode))
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+	if (err || !au_test_aufs(inode->i_sb) || is_bad_inode(inode))
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 		return;
 
 	iinfo = au_ii(inode);
@@ -202,10 +206,14 @@ static int do_pri_dentry(aufs_bindex_t bindex, struct dentry *dentry)
 	    && au_test_aufs(dentry->d_sb))
 		inode = d_inode(dentry);
 <<<<<<< HEAD
+<<<<<<< HEAD
 	if (inode && !is_bad_inode(inode)) {
 =======
 	if (inode && !au_is_bad_inode(inode)) {
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+	if (inode && !is_bad_inode(inode)) {
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 		iinfo = au_ii(inode);
 		hi = au_hinode(iinfo, bindex);
 		hn = !!au_hn(hi);
@@ -221,9 +229,13 @@ void au_dpri_dentry(struct dentry *dentry)
 	aufs_bindex_t bindex;
 	int err;
 <<<<<<< HEAD
+<<<<<<< HEAD
 	struct au_hdentry *hdp;
 =======
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+	struct au_hdentry *hdp;
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 
 	err = do_pri_dentry(-1, dentry);
 	if (err || !au_test_aufs(dentry->d_sb))
@@ -239,6 +251,7 @@ void au_dpri_dentry(struct dentry *dentry)
 	if (dinfo->di_btop < 0)
 		return;
 <<<<<<< HEAD
+<<<<<<< HEAD
 	hdp = dinfo->di_hdentry;
 	for (bindex = dinfo->di_btop; bindex <= dinfo->di_bbot; bindex++)
 		do_pri_dentry(bindex, hdp[0 + bindex].hd_dentry);
@@ -246,6 +259,11 @@ void au_dpri_dentry(struct dentry *dentry)
 	for (bindex = dinfo->di_btop; bindex <= dinfo->di_bbot; bindex++)
 		do_pri_dentry(bindex, au_hdentry(dinfo, bindex)->hd_dentry);
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+	hdp = dinfo->di_hdentry;
+	for (bindex = dinfo->di_btop; bindex <= dinfo->di_bbot; bindex++)
+		do_pri_dentry(bindex, hdp[0 + bindex].hd_dentry);
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 }
 
 static int do_pri_file(aufs_bindex_t bindex, struct file *file)
@@ -361,9 +379,14 @@ void au_dpri_sb(struct super_block *sb)
 	sbinfo = au_sbi(sb);
 	if (!sbinfo)
 		return;
+<<<<<<< HEAD
 	dpri("nw %lld, gen %u, kobj %d\n",
 	     percpu_counter_sum(&sbinfo->si_nowait.nw_len),
 	     sbinfo->si_generation,
+=======
+	dpri("nw %d, gen %u, kobj %d\n",
+	     atomic_read(&sbinfo->si_nowait.nw_len), sbinfo->si_generation,
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	     atomic_read(&sbinfo->si_kobj.kref.refcount));
 	for (bindex = 0; bindex <= sbinfo->si_bbot; bindex++)
 		do_pri_br(bindex, sbinfo->si_branch[0 + bindex]);

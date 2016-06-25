@@ -439,10 +439,14 @@ static void au_br_do_add_hdp(struct au_dinfo *dinfo, aufs_bindex_t bindex,
 	AuRwMustWriteLock(&dinfo->di_rwsem);
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 	hdp = dinfo->di_hdentry + bindex;
 =======
 	hdp = au_hdentry(dinfo, bindex);
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+	hdp = dinfo->di_hdentry + bindex;
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	memmove(hdp + 1, hdp, sizeof(*hdp) * amount);
 	au_h_dentry_init(hdp);
 	dinfo->di_bbot++;
@@ -583,7 +587,11 @@ static unsigned long long au_farray_cb(struct super_block *sb, void *a,
 static struct file **au_farray_alloc(struct super_block *sb,
 				     unsigned long long *max)
 {
+<<<<<<< HEAD
 	*max = au_nfiles(sb);
+=======
+	*max = atomic_long_read(&au_sbi(sb)->si_nfiles);
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	return au_array_alloc(max, au_farray_cb, sb, /*arg*/NULL);
 }
 
@@ -918,6 +926,9 @@ static void au_br_do_del_hdp(struct au_dinfo *dinfo, const aufs_bindex_t bindex,
 	AuRwMustWriteLock(&dinfo->di_rwsem);
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	hdp = dinfo->di_hdentry;
 	if (bindex < bbot)
 		memmove(hdp + bindex, hdp + bindex + 1,
@@ -926,6 +937,7 @@ static void au_br_do_del_hdp(struct au_dinfo *dinfo, const aufs_bindex_t bindex,
 	dinfo->di_bbot--;
 
 	p = krealloc(hdp, sizeof(*p) * bbot, AuGFP_SBILIST);
+<<<<<<< HEAD
 =======
 	hdp = au_hdentry(dinfo, bindex);
 	if (bindex < bbot)
@@ -935,6 +947,8 @@ static void au_br_do_del_hdp(struct au_dinfo *dinfo, const aufs_bindex_t bindex,
 
 	p = krealloc(dinfo->di_hdentry, sizeof(*p) * bbot, AuGFP_SBILIST);
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	if (p)
 		dinfo->di_hdentry = p;
 	/* harmless error */
@@ -1143,10 +1157,14 @@ static int au_ibusy(struct super_block *sb, struct aufs_ibusy __user *arg)
 	if (!inode
 	    || inode->i_ino == AUFS_ROOT_INO
 <<<<<<< HEAD
+<<<<<<< HEAD
 	    || is_bad_inode(inode))
 =======
 	    || au_is_bad_inode(inode))
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+	    || is_bad_inode(inode))
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 		goto out_unlock;
 
 	ii_read_lock_child(inode);

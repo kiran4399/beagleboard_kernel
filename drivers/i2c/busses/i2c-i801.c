@@ -726,6 +726,7 @@ static s32 i801_access(struct i2c_adapter *adap, u16 addr,
 	struct i801_priv *priv = i2c_get_adapdata(adap);
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 	mutex_lock(&priv->acpi_lock);
 	if (priv->acpi_reserved) {
@@ -734,6 +735,8 @@ static s32 i801_access(struct i2c_adapter *adap, u16 addr,
 	}
 
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	pm_runtime_get_sync(&priv->pci_dev->dev);
 
 	hwpec = (priv->features & FEATURE_SMBUS_PEC) && (flags & I2C_CLIENT_PEC)
@@ -837,9 +840,12 @@ out:
 	pm_runtime_mark_last_busy(&priv->pci_dev->dev);
 	pm_runtime_put_autosuspend(&priv->pci_dev->dev);
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 	mutex_unlock(&priv->acpi_lock);
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	return ret;
 }
 

@@ -37,9 +37,12 @@ static struct inode *aufs_alloc_inode(struct super_block *sb __maybe_unused)
 		au_icntnr_init(c);
 		c->vfs_inode.i_version = 1; /* sigen(sb); */
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 		c->iinfo.ii_hinode = NULL;
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 		return &c->vfs_inode;
 	}
 	return NULL;
@@ -56,10 +59,14 @@ static void aufs_destroy_inode_cb(struct rcu_head *head)
 static void aufs_destroy_inode(struct inode *inode)
 {
 <<<<<<< HEAD
+<<<<<<< HEAD
 	if (!is_bad_inode(inode))
 =======
 	if (!au_is_bad_inode(inode))
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+	if (!is_bad_inode(inode))
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 		au_iinfo_fin(inode);
 	call_rcu(&inode->i_rcu, aufs_destroy_inode_cb);
 }
@@ -107,11 +114,15 @@ static int au_show_brs(struct seq_file *seq, struct super_block *sb)
 	err = 0;
 	bbot = au_sbbot(sb);
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	hdp = au_di(sb->s_root)->di_hdentry;
 	for (bindex = 0; !err && bindex <= bbot; bindex++) {
 		br = au_sbr(sb, bindex);
 		path.mnt = au_br_mnt(br);
 		path.dentry = hdp[bindex].hd_dentry;
+<<<<<<< HEAD
 =======
 	bindex = 0;
 	hdp = au_hdentry(au_di(sb->s_root), bindex);
@@ -120,6 +131,8 @@ static int au_show_brs(struct seq_file *seq, struct super_block *sb)
 		path.mnt = au_br_mnt(br);
 		path.dentry = hdp->hd_dentry;
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 		err = au_seq_path(seq, &path);
 		if (!err) {
 			au_optstr_br_perm(&perm, br->br_perm);
@@ -195,9 +208,13 @@ static int au_show_xino(struct seq_file *seq, struct super_block *sb)
 	struct file *f;
 	struct dentry *d, *h_root;
 <<<<<<< HEAD
+<<<<<<< HEAD
 	struct au_hdentry *hdp;
 =======
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+	struct au_hdentry *hdp;
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 
 	AuRwMustAnyLock(&sbinfo->si_rwsem);
 
@@ -212,11 +229,16 @@ static int au_show_xino(struct seq_file *seq, struct super_block *sb)
 	if (brid >= 0) {
 		bindex = au_br_index(sb, brid);
 <<<<<<< HEAD
+<<<<<<< HEAD
 		hdp = au_di(sb->s_root)->di_hdentry;
 		h_root = hdp[0 + bindex].hd_dentry;
 =======
 		h_root = au_hdentry(au_di(sb->s_root), bindex)->hd_dentry;
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+		hdp = au_di(sb->s_root)->di_hdentry;
+		h_root = hdp[0 + bindex].hd_dentry;
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	}
 	d = f->f_path.dentry;
 	name = &d->d_name;
@@ -541,10 +563,14 @@ static unsigned long long au_iarray_cb(struct super_block *sb, void *a,
 	spin_lock(&sb->s_inode_list_lock);
 	list_for_each_entry(inode, head, i_sb_list) {
 <<<<<<< HEAD
+<<<<<<< HEAD
 		if (!is_bad_inode(inode)
 =======
 		if (!au_is_bad_inode(inode)
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+		if (!is_bad_inode(inode)
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 		    && au_ii(inode)->ii_btop >= 0) {
 			spin_lock(&inode->i_lock);
 			if (atomic_read(&inode->i_count)) {
@@ -563,7 +589,11 @@ static unsigned long long au_iarray_cb(struct super_block *sb, void *a,
 
 struct inode **au_iarray_alloc(struct super_block *sb, unsigned long long *max)
 {
+<<<<<<< HEAD
 	*max = au_ninodes(sb);
+=======
+	*max = atomic_long_read(&au_sbi(sb)->si_ninodes);
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	return au_array_alloc(max, au_iarray_cb, sb, &sb->s_inodes);
 }
 

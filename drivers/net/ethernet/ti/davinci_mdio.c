@@ -129,6 +129,9 @@ static void __davinci_gpio_reset(struct davinci_mdio_data *data)
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 #if IS_ENABLED(CONFIG_OF)
 static void davinci_mdio_update_dt_from_phymask(u32 phy_mask);
 #endif
@@ -492,6 +495,7 @@ err_out:
 	}
 }
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 #endif
 
@@ -507,6 +511,8 @@ static const struct of_device_id davinci_mdio_of_mtable[] = {
 };
 MODULE_DEVICE_TABLE(of, davinci_mdio_of_mtable);
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 #endif
 
 static int davinci_mdio_probe(struct platform_device *pdev)

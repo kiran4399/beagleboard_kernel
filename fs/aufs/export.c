@@ -234,10 +234,14 @@ static struct dentry *decode_by_ino(struct super_block *sb, ino_t ino,
 	dentry = ERR_PTR(-ESTALE);
 	sigen = au_sigen(sb);
 <<<<<<< HEAD
+<<<<<<< HEAD
 	if (unlikely(is_bad_inode(inode)
 =======
 	if (unlikely(au_is_bad_inode(inode)
 >>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
+=======
+	if (unlikely(is_bad_inode(inode)
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 		     || IS_DEADDIR(inode)
 		     || sigen != au_iigen(inode, NULL)))
 		goto out_iput;
@@ -519,11 +523,17 @@ struct dentry *decode_by_path(struct super_block *sb, ino_t ino, __u32 *fh,
 	h_mnt = au_br_mnt(br);
 	h_sb = h_mnt->mnt_sb;
 	/* todo: call lower fh_to_dentry()? fh_to_parent()? */
+<<<<<<< HEAD
 	lockdep_off();
 	h_parent = exportfs_decode_fh(h_mnt, (void *)(fh + Fh_tail),
 				      fh_len - Fh_tail, fh[Fh_h_type],
 				      h_acceptable, /*context*/NULL);
 	lockdep_on();
+=======
+	h_parent = exportfs_decode_fh(h_mnt, (void *)(fh + Fh_tail),
+				      fh_len - Fh_tail, fh[Fh_h_type],
+				      h_acceptable, /*context*/NULL);
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	dentry = h_parent;
 	if (unlikely(!h_parent || IS_ERR(h_parent))) {
 		AuWarn1("%s decode_fh failed, %ld\n",

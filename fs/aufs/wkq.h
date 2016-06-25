@@ -33,7 +33,11 @@ struct super_block;
  * in the next operation, wait for the 'nowait' tasks in system-wide workqueue
  */
 struct au_nowait_tasks {
+<<<<<<< HEAD
 	struct percpu_counter	nw_len;
+=======
+	atomic_t		nw_len;
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	wait_queue_head_t	nw_wq;
 };
 
@@ -60,7 +64,10 @@ int au_wkq_do_wait(unsigned int flags, au_wkq_func_t func, void *args);
 int au_wkq_nowait(au_wkq_func_t func, void *args, struct super_block *sb,
 		  unsigned int flags);
 void au_nwt_init(struct au_nowait_tasks *nwt);
+<<<<<<< HEAD
 void au_nwt_fin(struct au_nowait_tasks *nwt);
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 int __init au_wkq_init(void);
 void au_wkq_fin(void);
 
@@ -78,14 +85,22 @@ static inline int au_wkq_wait(au_wkq_func_t func, void *args)
 
 static inline void au_nwt_done(struct au_nowait_tasks *nwt)
 {
+<<<<<<< HEAD
 	percpu_counter_dec(&nwt->nw_len);
 	if (!percpu_counter_sum(&nwt->nw_len))
+=======
+	if (atomic_dec_and_test(&nwt->nw_len))
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 		wake_up_all(&nwt->nw_wq);
 }
 
 static inline int au_nwt_flush(struct au_nowait_tasks *nwt)
 {
+<<<<<<< HEAD
 	wait_event(nwt->nw_wq, !percpu_counter_sum(&nwt->nw_len));
+=======
+	wait_event(nwt->nw_wq, !atomic_read(&nwt->nw_len));
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 	return 0;
 }
 

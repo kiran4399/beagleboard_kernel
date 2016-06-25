@@ -22,7 +22,10 @@
 
 /* The I2C_RDWR ioctl code is written by Kolja Waschk <waschk@telos.de> */
 
+<<<<<<< HEAD
 #include <linux/cdev.h>
+=======
+>>>>>>> e1ddf3802b9059c0a1f1124f965a516da8d71d3e
 #include <linux/device.h>
 #include <linux/fs.h>
 #include <linux/i2c-dev.h>
