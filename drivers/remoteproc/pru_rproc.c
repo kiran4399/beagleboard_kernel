@@ -17,6 +17,7 @@
 
 #include <linux/bitops.h>
 #include <linux/debugfs.h>
+#include <linux/interrupt.h>
 #include <linux/mailbox_client.h>
 #include <linux/module.h>
 #include <linux/of_device.h>
@@ -73,7 +74,7 @@ enum pru_mem {
  */
 struct pru_private_data {
 	u32 id;
-	const int caps;
+	int caps;
 	const char *fw_name;
 	const char *eth_fw_name;
 };
@@ -95,6 +96,8 @@ struct pru_match_private_data {
  * @rproc: remoteproc pointer for this PRU core
  * @mbox: mailbox channel handle used for vring signalling with MPU
  * @client: mailbox client to request the mailbox channel
+ * @irq_ring: IRQ number to use for processing vring buffers
+ * @irq_kick: IRQ number to use to perform virtio kick
  * @mem_regions: data for each of the PRU memory regions
  * @intc_config: PRU INTC configuration data
  * @rmw_lock: lock for read, modify, write operations on registers
@@ -113,6 +116,8 @@ struct pru_rproc {
 	struct rproc *rproc;
 	struct mbox_chan *mbox;
 	struct mbox_client client;
+	int irq_vring;
+	int irq_kick;
 	struct pruss_mem_region mem_regions[PRU_MEM_MAX];
 	struct pruss_intc_config intc_config;
 	spinlock_t rmw_lock; /* register access lock */
@@ -418,6 +423,31 @@ static void pru_rproc_mbox_callback(struct mbox_client *client, void *data)
 		dev_dbg(dev, "no message was found in vqid %d\n", msg);
 }
 
+/**
+ * pru_rproc_vring_interrupt() - interrupt handler for processing vrings
+ * @irq: irq number associated with the PRU event MPU is listening on
+ * @data: interrupt handler data, will be a PRU rproc structure
+ *
+ * This handler is used by the PRU remoteproc driver when using PRU system
+ * events for processing the virtqueues. Unlike the mailbox IP, there is
+ * no payload associated with an interrupt, so either a unique event is
+ * used for each virtqueue kick, or a both virtqueues are processed on
+ * a single event. The latter is chosen to conserve the usable PRU system
+ * events.
+ */
+static irqreturn_t pru_rproc_vring_interrupt(int irq, void *data)
+{
+	struct pru_rproc *pru = data;
+
+	dev_dbg(&pru->rproc->dev, "got vring irq\n");
+
+	/* process incoming buffers on both the Rx and Tx vrings */
+	rproc_vq_interrupt(pru->rproc, 0);
+	rproc_vq_interrupt(pru->rproc, 1);
+
+	return IRQ_HANDLED;
+}
+
 /* kick a virtqueue */
 static void pru_rproc_kick(struct rproc *rproc, int vq_id)
 {
@@ -427,10 +457,19 @@ static void pru_rproc_kick(struct rproc *rproc, int vq_id)
 
 	dev_dbg(dev, "kicking vqid %d on PRU%d\n", vq_id, pru->id);
 
-	/* send the index of the triggered virtqueue in the mailbox payload */
-	ret = mbox_send_message(pru->mbox, (void *)vq_id);
-	if (ret < 0)
-		dev_err(dev, "mbox_send_message failed: %d\n", ret);
+	if (pru->mbox) {
+		/*
+		 * send the index of the triggered virtqueue in the mailbox
+		 * payload
+		 */
+		ret = mbox_send_message(pru->mbox, (void *)vq_id);
+		if (ret < 0)
+			dev_err(dev, "mbox_send_message failed: %d\n", ret);
+	} else if (pru->irq_kick > 0) {
+		ret = pruss_intc_trigger(pru->irq_kick);
+		if (ret < 0)
+			dev_err(dev, "pruss_intc_trigger failed: %d\n", ret);
+	}
 }
 
 /* start a PRU core */
@@ -439,14 +478,39 @@ static int pru_rproc_start(struct rproc *rproc)
 	struct device *dev = &rproc->dev;
 	struct pru_rproc *pru = rproc->priv;
 	u32 val;
+	int ret;
 
 	dev_dbg(dev, "starting PRU%d: entry-point = 0x%x\n",
 		pru->id, (rproc->bootaddr >> 2));
+
+	if (!list_empty(&pru->rproc->rvdevs)) {
+		if (!pru->mbox && (pru->irq_vring <= 0 || pru->irq_kick <= 0)) {
+			dev_err(dev, "virtio vring interrupt mechanisms are not provided\n");
+			ret = -EINVAL;
+			goto fail;
+		}
+
+		if (!pru->mbox && pru->irq_vring > 0) {
+			ret = request_threaded_irq(pru->irq_vring, NULL,
+						   pru_rproc_vring_interrupt,
+						   IRQF_ONESHOT, dev_name(dev),
+						   pru);
+			if (ret) {
+				dev_err(dev, "failed to enable vring interrupt, ret = %d\n",
+					ret);
+				goto fail;
+			}
+		}
+	}
 
 	val = CTRL_CTRL_EN | ((rproc->bootaddr >> 2) << 16);
 	pru_control_write_reg(pru, PRU_CTRL_CTRL, val);
 
 	return 0;
+
+fail:
+	pruss_intc_unconfigure(pru->pruss, &pru->intc_config);
+	return ret;
 }
 
 /* stop/disable a PRU core */
@@ -461,6 +525,10 @@ static int pru_rproc_stop(struct rproc *rproc)
 	val = pru_control_read_reg(pru, PRU_CTRL_CTRL);
 	val &= ~CTRL_CTRL_EN;
 	pru_control_write_reg(pru, PRU_CTRL_CTRL, val);
+
+	if (!list_empty(&pru->rproc->rvdevs) &&
+	    !pru->mbox && pru->irq_vring > 0)
+		free_irq(pru->irq_vring, pru);
 
 	/* undo INTC config */
 	pruss_intc_unconfigure(pru->pruss, &pru->intc_config);
@@ -613,6 +681,7 @@ static const struct pru_private_data *pru_rproc_get_private_data(
 {
 	const struct pru_match_private_data *data;
 	const struct of_device_id *match;
+	struct pru_private_data *pdata = NULL;
 
 	match = of_match_device(pru_rproc_match, &pdev->dev);
 	if (!match)
@@ -620,10 +689,14 @@ static const struct pru_private_data *pru_rproc_get_private_data(
 
 	for (data = match->data; data && data->device_name; data++) {
 		if (!strcmp(dev_name(&pdev->dev), data->device_name))
-			return data->priv_data;
+			pdata = data->priv_data;
 	}
 
-	return NULL;
+	/* fixup PRU capability differences between AM571x and AM572x IDKs */
+	if (pdata && of_machine_is_compatible("ti,am5718-idk"))
+		pdata->caps = PRU_FUNC_CAPS_ETHERNET;
+
+	return pdata;
 }
 
 static int pru_rproc_probe(struct platform_device *pdev)
@@ -639,6 +712,7 @@ static int pru_rproc_probe(struct platform_device *pdev)
 	int i, ret;
 	const char *mem_names[PRU_MEM_MAX] = { "iram", "control", "debug" };
 	bool use_eth = false;
+	u32 mux_sel;
 
 	if (!np) {
 		dev_err(dev, "Non-DT platform device not supported\n");
@@ -716,14 +790,49 @@ static int pru_rproc_probe(struct platform_device *pdev)
 	pru->mbox = mbox_request_channel(client, 0);
 	if (IS_ERR(pru->mbox)) {
 		ret = PTR_ERR(pru->mbox);
-		dev_err(dev, "mbox_request_channel failed: %d\n", ret);
-		goto free_rproc;
+		pru->mbox = NULL;
+		dev_dbg(dev, "mbox_request_channel failed: %d\n", ret);
 	}
+
+	pru->irq_vring = platform_get_irq_byname(pdev, "vring");
+	if (pru->irq_vring <= 0) {
+		ret = pru->irq_vring;
+		if (ret == -EPROBE_DEFER)
+			goto free_rproc;
+		dev_dbg(dev, "unable to get vring interrupt, status = %d\n",
+			ret);
+	}
+
+	pru->irq_kick = platform_get_irq_byname(pdev, "kick");
+	if (pru->irq_kick <= 0) {
+		ret = pru->irq_kick;
+		if (ret == -EPROBE_DEFER)
+			goto free_rproc;
+		dev_dbg(dev, "unable to get kick interrupt, status = %d\n",
+			ret);
+	}
+
+	if (pru->mbox && (pru->irq_vring > 0 || pru->irq_kick > 0))
+		dev_warn(dev, "both mailbox and vring/kick system events defined\n");
 
 	ret = rproc_add(pru->rproc);
 	if (ret) {
 		dev_err(dev, "rproc_add failed: %d\n", ret);
 		goto put_mbox;
+	}
+
+	if (of_machine_is_compatible("ti,am5718-idk") && pru->use_eth &&
+	    !of_property_read_u32(np, "ti,pruss-gp-mux-sel", &mux_sel)) {
+		if (mux_sel < PRUSS_GP_MUX_SEL_GP ||
+		    mux_sel >= PRUSS_GP_MUX_MAX) {
+			dev_err(dev, "invalid gp_mux_sel %d\n", mux_sel);
+			ret = -EINVAL;
+			goto del_rproc;
+		}
+
+		ret = pruss_cfg_set_gpmux(pru->pruss, pru->id, mux_sel);
+		if (ret)
+			goto del_rproc;
 	}
 
 	pru_rproc_create_debug_entries(rproc);
@@ -775,6 +884,9 @@ static int pru_rproc_remove(struct platform_device *pdev)
 	}
 
 	mbox_free_channel(pru->mbox);
+
+	if (of_machine_is_compatible("ti,am5718-idk") && pru->use_eth)
+		pruss_cfg_set_gpmux(pru->pruss, pru->id, PRUSS_GP_MUX_SEL_GP);
 
 	rproc_del(rproc);
 	rproc_put(rproc);
@@ -840,6 +952,27 @@ static struct pru_private_data am57xx_pru2_1_rproc_pdata = {
 	.eth_fw_name = "ti-pruss/am57xx-pru1-prueth-fw.elf"
 };
 
+/* K2G PRUSS0 PRU core-specific private data */
+static struct pru_private_data k2g_pru0_0_rproc_pdata = {
+	.id = 0,
+	.fw_name = "k2g-pru0_0-fw",
+};
+
+static struct pru_private_data k2g_pru0_1_rproc_pdata = {
+	.id = 1,
+	.fw_name = "k2g-pru0_1-fw",
+};
+
+static struct pru_private_data k2g_pru1_0_rproc_pdata = {
+	.id = 0,
+	.fw_name = "k2g-pru1_0-fw",
+};
+
+static struct pru_private_data k2g_pru1_1_rproc_pdata = {
+	.id = 1,
+	.fw_name = "k2g-pru1_1-fw",
+};
+
 /* AM33xx SoC-specific PRU Device data */
 static struct pru_match_private_data am335x_pru_match_data[] = {
 	{
@@ -893,10 +1026,34 @@ static struct pru_match_private_data am57xx_pru_match_data[] = {
 	},
 };
 
+/* K2G SoC-specific PRU Device data */
+static struct pru_match_private_data k2g_pru_match_data[] = {
+	{
+		.device_name	= "20ab4000.pru0",
+		.priv_data	= &k2g_pru0_0_rproc_pdata,
+	},
+	{
+		.device_name	= "20ab8000.pru1",
+		.priv_data	= &k2g_pru0_1_rproc_pdata,
+	},
+	{
+		.device_name	= "20af4000.pru0",
+		.priv_data	= &k2g_pru1_0_rproc_pdata,
+	},
+	{
+		.device_name	= "20af8000.pru1",
+		.priv_data	= &k2g_pru1_1_rproc_pdata,
+	},
+	{
+		/* sentinel */
+	},
+};
+
 static const struct of_device_id pru_rproc_match[] = {
 	{ .compatible = "ti,am3352-pru", .data = am335x_pru_match_data, },
 	{ .compatible = "ti,am4372-pru", .data = am437x_pru_match_data, },
 	{ .compatible = "ti,am5728-pru", .data = am57xx_pru_match_data, },
+	{ .compatible = "ti,k2g-pru", .data = k2g_pru_match_data, },
 	{},
 };
 MODULE_DEVICE_TABLE(of, pru_rproc_match);

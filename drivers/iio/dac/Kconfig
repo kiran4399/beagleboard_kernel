@@ -247,7 +247,11 @@ config MCP4922
 
 config STX104
 	tristate "Apex Embedded Systems STX104 DAC driver"
+<<<<<<< HEAD
 	depends on X86 && ISA
+=======
+	depends on X86 && ISA_BUS_API
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 	help
 	  Say yes here to build support for the 2-channel DAC on the Apex
 	  Embedded Systems STX104 integrated analog PC/104 card. The base port

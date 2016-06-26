@@ -1,0 +1,137 @@
+--- drivers/iio/imu/inv_mpu6050/inv_mpu_ring.c
++++ drivers/iio/imu/inv_mpu6050/inv_mpu_ring.c
+@@ -24,6 +24,90 @@
+ #include <linux/spi/spi.h>
+ #include "inv_mpu_iio.h"
+ 
++static void inv_mpu_get_scan_offsets(
++		struct iio_dev *indio_dev,
++		const unsigned long *mask,
++		const unsigned int masklen,
++		unsigned int *scan_offsets)
++{
++	unsigned int pos = 0;
++
++	if (*mask & INV_MPU6050_SCAN_MASK_ACCEL) {
++		scan_offsets[INV_MPU6050_SCAN_ACCL_X] = pos + 0;
++		scan_offsets[INV_MPU6050_SCAN_ACCL_Y] = pos + 2;
++		scan_offsets[INV_MPU6050_SCAN_ACCL_Z] = pos + 4;
++		pos += 6;
++	}
++	if (*mask & INV_MPU6050_SCAN_MASK_GYRO) {
++		scan_offsets[INV_MPU6050_SCAN_GYRO_X] = pos + 0;
++		scan_offsets[INV_MPU6050_SCAN_GYRO_Y] = pos + 2;
++		scan_offsets[INV_MPU6050_SCAN_GYRO_Z] = pos + 4;
++		pos += 6;
++	}
++}
++
++/* This is slowish but relatively common */
++static const struct iio_chan_spec *
++iio_chan_by_scan_index(struct iio_dev *indio_dev, int index)
++{
++	int i;
++
++	for (i = 0; i < indio_dev->num_channels; ++i)
++		if (indio_dev->channels[i].scan_index == index)
++			return &indio_dev->channels[i];
++
++	return NULL;
++}
++
++static int iio_check_scan_offsets_aligned(
++		struct iio_dev *indio_dev,
++		const unsigned long *mask,
++		unsigned int masklen,
++		unsigned int *scan_offsets)
++{
++	int scan_index;
++	unsigned int pos = 0;
++	const struct iio_chan_spec *chan;
++
++	for_each_set_bit(scan_index, mask, masklen) {
++		chan = iio_chan_by_scan_index(indio_dev, scan_index);
++		if (scan_offsets[scan_index] != pos)
++			return false;
++		pos = ALIGN(pos + chan->scan_type.storagebits / 8,
++			    chan->scan_type.storagebits / 8);
++	}
++
++	return true;
++}
++
++static void iio_get_scan_lengths(struct iio_dev *indio_dev, unsigned int *scan_length)
++{
++	int i;
++	const struct iio_chan_spec *chan;
++
++	for (i = 0; i < indio_dev->num_channels; ++i) {
++		chan = &indio_dev->channels[i];
++		if (chan->scan_index < 0)
++			continue;
++		scan_length[chan->scan_index] = chan->scan_type.storagebits / 8;
++	}
++}
++
++static void iio_realign_sample(
++		struct iio_dev *indio_dev,
++		const u8 *ibuf, u8 *obuf,
++		const unsigned int *scan_offset,
++		const unsigned int *scan_lengths)
++{
++	unsigned int pos = 0;
++	int i;
++
++	for_each_set_bit(i, indio_dev->active_scan_mask, indio_dev->masklength) {
++		memcpy(&obuf[pos], &ibuf[scan_offset[i]], scan_lengths[i]);
++		pos = ALIGN(pos + scan_lengths[i], scan_lengths[i]);
++	}
++}
++
+ static void inv_clear_kfifo(struct inv_mpu6050_state *st)
+ {
+ 	unsigned long flags;
+@@ -38,7 +122,9 @@
+ {
+ 	int result;
+ 	u8 d;
+-	struct inv_mpu6050_state  *st = iio_priv(indio_dev);
++	struct inv_mpu6050_state *st = iio_priv(indio_dev);
++	const unsigned long *mask = indio_dev->active_scan_mask;
++	unsigned int masklen = indio_dev->masklength;
+ 
+ 	/* disable interrupt */
+ 	result = regmap_update_bits(st->map, st->reg->int_enable,
+@@ -93,6 +179,13 @@
+ 	if (result)
+ 		goto reset_fifo_fail;
+ 
++	/* check realign required */
++	inv_mpu_get_scan_offsets(indio_dev, mask, masklen, st->scan_offsets);
++	st->realign_required = !iio_check_scan_offsets_aligned(
++			indio_dev, mask, masklen, st->scan_offsets);
++	if (st->realign_required)
++		iio_get_scan_lengths(indio_dev, st->scan_lengths);
++
+ 	return 0;
+ 
+ reset_fifo_fail:
+@@ -201,8 +294,16 @@
+ 		if (result == 0)
+ 			timestamp = 0;
+ 
+-		result = iio_push_to_buffers_with_timestamp(indio_dev, data,
+-							    timestamp);
++		if (st->realign_required) {
++			u8 adata[INV_MPU6050_OUTPUT_DATA_SIZE];
++			iio_realign_sample(indio_dev, data, adata,
++					    st->scan_offsets, st->scan_lengths);
++			result = iio_push_to_buffers_with_timestamp(
++					indio_dev, adata, timestamp);
++		} else {
++			result = iio_push_to_buffers_with_timestamp(
++					indio_dev, data, timestamp);
++		}
+ 		if (result)
+ 			goto flush_fifo;
+ 		fifo_count -= bytes_per_datum;

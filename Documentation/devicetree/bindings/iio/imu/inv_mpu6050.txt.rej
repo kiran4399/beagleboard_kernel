@@ -1,0 +1,82 @@
+--- Documentation/devicetree/bindings/iio/imu/inv_mpu6050.txt
++++ Documentation/devicetree/bindings/iio/imu/inv_mpu6050.txt
+@@ -11,8 +11,8 @@
+  - mount-matrix: an optional 3x3 mounting rotation matrix
+  - invensense,i2c-aux-master: operate aux i2c in "master" mode (default is bypass).
+ 
+-The MPU has an auxiliary i2c bus for additional sensors. Devices attached this
+-way can be described as for a regular linux i2c bus.
++It is possible to attach auxiliary sensors to the MPU and have them be handled
++by linux. Those auxiliary sensors are described as an i2c bus.
+ 
+ It is possible to interact with aux devices in "bypass" or "master" mode. In
+ "bypass" mode the auxiliary SDA/SCL lines are connected directly to the main i2c
+@@ -25,7 +25,31 @@
+ The master and bypass modes are not supported at the same time. The
+ "invensense,i2c-aux-master" property must be set to activate master mode.
+ Bypass mode is generally faster but master mode also works when the MPU is
+-connected via SPI.
++connected via SPI. Enabling master mode is required for automated external
++readings.
++
++
++It is possible to configure the MPU to automatically fetch reading for
++devices connected on the auxiliary i2c bus without CPU intervention. When this
++is done the driver will present the channels of the slaved devices as if they
++belong to the MPU device itself.
++
++Reads and write to config values (like scaling factors) are forwarded to the
++other driver while data reads are handled from MPU registers. The channels are
++also available through the MPU's iio triggered buffer mechanism. This feature
++can allow sampling up to 24 bytes from 4 slaves at a much higher rate.
++
++This is specified in device tree as an "invensense,external-sensors" node with
++children indexed by slave ids 0 to 3. The child nodes identifying each external
++sensor reading have the following properties:
++ - reg: 0 to 3 slave index
++ - invensense,addr : the I2C address to read from
++ - invensense,reg : the I2C register to read from
++ - invensense,len : read length from the device
++ - invensense,external-channels : list of slaved channels specified by scan_index.
++
++The sum of storagebits for external channels must equal the read length. Only
++16bit channels are currently supported.
+ 
+ 
+ Example:
+@@ -57,7 +81,8 @@
+ 		};
+ 	};
+ 
+-Example describing a mpu6500 via SPI with an hmc5883l on auxiliary i2c:
++Example describing a mpu6500 via SPI with an hmc5883l on aux i2c configured for
++automatic external readings as slave 0:
+ 	mpu6500@0 {
+ 		compatible = "invensense,mpu6500";
+ 		reg = <0x0>;
+@@ -65,6 +90,8 @@
+ 		interrupt-parent = <&gpio1>;
+ 		interrupts = <31 1>;
+ 
++		invensense,i2c-aux-master;
++
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+ 		i2c@1 {
+@@ -77,4 +104,16 @@
+ 				reg = <0x1e>;
+ 			};
+ 		};
++
++		invensense,external-sensors {
++			#address-cells = <1>;
++			#size-cells = <0>;
++			hmc5833l@0 {
++				reg = <0>;
++				invensense,addr = <0x1e>;
++				invensense,reg = <3>;
++				invensense,len = <6>;
++				invensense,external-channels = <0 1 2>;
++			};
++		};
+ 	};

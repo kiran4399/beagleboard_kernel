@@ -354,11 +354,27 @@ static ssize_t aufs_read_iter(struct kiocb *kio, struct iov_iter *iov_iter)
 	sb = inode->i_sb;
 	si_read_lock(sb, AuLock_FLUSH | AuLock_NOPLMW);
 
+<<<<<<< HEAD
 	h_file = au_read_pre(file, /*keep_fi*/0);
+=======
+	h_file = au_read_pre(file, /*keep_fi*/1);
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 	err = PTR_ERR(h_file);
 	if (IS_ERR(h_file))
 		goto out;
 
+<<<<<<< HEAD
+=======
+	if (au_test_loopback_kthread()) {
+		au_warn_loopback(h_file->f_path.dentry->d_sb);
+		if (file->f_mapping != h_file->f_mapping) {
+			file->f_mapping = h_file->f_mapping;
+			smp_mb(); /* unnecessary? */
+		}
+	}
+	fi_read_unlock(file);
+
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 	err = au_do_iter(h_file, MAY_READ, kio, iov_iter);
 	/* todo: necessary? */
 	/* file->f_ra = h_file->f_ra; */
@@ -407,11 +423,16 @@ static ssize_t aufs_splice_read(struct file *file, loff_t *ppos,
 	sb = inode->i_sb;
 	si_read_lock(sb, AuLock_FLUSH | AuLock_NOPLMW);
 
+<<<<<<< HEAD
 	h_file = au_read_pre(file, /*keep_fi*/1);
+=======
+	h_file = au_read_pre(file, /*keep_fi*/0);
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 	err = PTR_ERR(h_file);
 	if (IS_ERR(h_file))
 		goto out;
 
+<<<<<<< HEAD
 	if (au_test_loopback_kthread()) {
 		au_warn_loopback(h_file->f_path.dentry->d_sb);
 		if (file->f_mapping != h_file->f_mapping) {
@@ -421,6 +442,8 @@ static ssize_t aufs_splice_read(struct file *file, loff_t *ppos,
 	}
 	fi_read_unlock(file);
 
+=======
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 	err = vfsub_splice_to(h_file, ppos, pipe, len, flags);
 	/* todo: necessasry? */
 	/* file->f_ra = h_file->f_ra; */

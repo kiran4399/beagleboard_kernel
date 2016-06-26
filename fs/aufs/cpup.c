@@ -1100,15 +1100,24 @@ static int au_do_cpup_wh(struct au_cp_generic *cpg, struct dentry *wh_dentry,
 	int err;
 	unsigned int flags_orig;
 	aufs_bindex_t bsrc_orig;
+<<<<<<< HEAD
 	struct dentry *h_d_dst, *h_d_start;
 	struct au_dinfo *dinfo;
 	struct au_hdentry *hdp;
+=======
+	struct au_dinfo *dinfo;
+	struct {
+		struct au_hdentry *hd;
+		struct dentry *h_dentry;
+	} hdst, hsrc;
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 
 	dinfo = au_di(cpg->dentry);
 	AuRwMustWriteLock(&dinfo->di_rwsem);
 
 	bsrc_orig = cpg->bsrc;
 	cpg->bsrc = dinfo->di_btop;
+<<<<<<< HEAD
 	hdp = dinfo->di_hdentry;
 	h_d_dst = hdp[0 + cpg->bdst].hd_dentry;
 	dinfo->di_btop = cpg->bdst;
@@ -1117,6 +1126,18 @@ static int au_do_cpup_wh(struct au_cp_generic *cpg, struct dentry *wh_dentry,
 	if (file) {
 		h_d_start = hdp[0 + cpg->bsrc].hd_dentry;
 		hdp[0 + cpg->bsrc].hd_dentry = au_hf_top(file)->f_path.dentry;
+=======
+	hdst.hd = au_hdentry(dinfo, cpg->bdst);
+	hdst.h_dentry = hdst.hd->hd_dentry;
+	hdst.hd->hd_dentry = wh_dentry;
+	dinfo->di_btop = cpg->bdst;
+
+	hsrc.h_dentry = NULL;
+	if (file) {
+		hsrc.hd = au_hdentry(dinfo, cpg->bsrc);
+		hsrc.h_dentry = hsrc.hd->hd_dentry;
+		hsrc.hd->hd_dentry = au_hf_top(file)->f_path.dentry;
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 	}
 	flags_orig = cpg->flags;
 	cpg->flags = !AuCpup_DTIME;
@@ -1125,9 +1146,15 @@ static int au_do_cpup_wh(struct au_cp_generic *cpg, struct dentry *wh_dentry,
 	if (file) {
 		if (!err)
 			err = au_reopen_nondir(file);
+<<<<<<< HEAD
 		hdp[0 + cpg->bsrc].hd_dentry = h_d_start;
 	}
 	hdp[0 + cpg->bdst].hd_dentry = h_d_dst;
+=======
+		hsrc.hd->hd_dentry = hsrc.h_dentry;
+	}
+	hdst.hd->hd_dentry = hdst.h_dentry;
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 	dinfo->di_btop = cpg->bsrc;
 	cpg->bsrc = bsrc_orig;
 

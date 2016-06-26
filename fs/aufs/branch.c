@@ -438,7 +438,11 @@ static void au_br_do_add_hdp(struct au_dinfo *dinfo, aufs_bindex_t bindex,
 
 	AuRwMustWriteLock(&dinfo->di_rwsem);
 
+<<<<<<< HEAD
 	hdp = dinfo->di_hdentry + bindex;
+=======
+	hdp = au_hdentry(dinfo, bindex);
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 	memmove(hdp + 1, hdp, sizeof(*hdp) * amount);
 	au_h_dentry_init(hdp);
 	dinfo->di_bbot++;
@@ -913,6 +917,7 @@ static void au_br_do_del_hdp(struct au_dinfo *dinfo, const aufs_bindex_t bindex,
 
 	AuRwMustWriteLock(&dinfo->di_rwsem);
 
+<<<<<<< HEAD
 	hdp = dinfo->di_hdentry;
 	if (bindex < bbot)
 		memmove(hdp + bindex, hdp + bindex + 1,
@@ -921,6 +926,15 @@ static void au_br_do_del_hdp(struct au_dinfo *dinfo, const aufs_bindex_t bindex,
 	dinfo->di_bbot--;
 
 	p = krealloc(hdp, sizeof(*p) * bbot, AuGFP_SBILIST);
+=======
+	hdp = au_hdentry(dinfo, bindex);
+	if (bindex < bbot)
+		memmove(hdp, hdp + 1, sizeof(*hdp) * (bbot - bindex));
+	/* au_h_dentry_init(au_hdentry(dinfo, bbot); */
+	dinfo->di_bbot--;
+
+	p = krealloc(dinfo->di_hdentry, sizeof(*p) * bbot, AuGFP_SBILIST);
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 	if (p)
 		dinfo->di_hdentry = p;
 	/* harmless error */
@@ -1128,7 +1142,11 @@ static int au_ibusy(struct super_block *sb, struct aufs_ibusy __user *arg)
 	inode = ilookup(sb, ibusy.ino);
 	if (!inode
 	    || inode->i_ino == AUFS_ROOT_INO
+<<<<<<< HEAD
 	    || is_bad_inode(inode))
+=======
+	    || au_is_bad_inode(inode))
+>>>>>>> e57c79fddc5931ff44b4529298bf012be9ccb200
 		goto out_unlock;
 
 	ii_read_lock_child(inode);
